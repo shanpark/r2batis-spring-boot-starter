@@ -19,7 +19,6 @@ publishing {
             groupId = 'io.github.shanpark'
             artifactId = 'r2batis-spring-boot-starter'
             version = '0.0.3'
-
             from components.java
         }
     }
