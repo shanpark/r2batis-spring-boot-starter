@@ -1,12 +1,10 @@
 plugins {
-    id 'java'
-//    id 'org.springframework.boot' version '3.0.6'
-//    id 'io.spring.dependency-management' version '1.1.0'
+    id 'java-library'
     id 'maven-publish'
 }
 
 group 'io.github.shanpark'
-version '0.0.3'
+version '0.0.4'
 sourceCompatibility = '17'
 
 repositories {
@@ -18,16 +16,17 @@ publishing {
         maven(MavenPublication) {
             groupId = 'io.github.shanpark'
             artifactId = 'r2batis-spring-boot-starter'
-            version = '0.0.3'
+            version = '0.0.4'
             from components.java
         }
     }
 }
 
 dependencies {
-    implementation 'ognl:ognl:3.3.3'
     implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc:3.0.6'
     implementation 'org.springframework.boot:spring-boot-autoconfigure-processor:3.0.6'
+    api 'ognl:ognl:3.3.3'
+
     compileOnly 'org.projectlombok:lombok:1.18.26'
     annotationProcessor 'org.projectlombok:lombok:1.18.26'
 
