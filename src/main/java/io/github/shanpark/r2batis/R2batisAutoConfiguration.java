@@ -73,7 +73,7 @@ public class R2batisAutoConfiguration implements BeanDefinitionRegistryPostProce
      * @return 생성된 InterfaceImpl 객체가 담겨 있는 Map 객체.
      */
     private Map<String, InterfaceImpl> scanMapperXml() {
-        String mapperLocations = environment.getProperty("r2dbc.mapper-locations");
+        String mapperLocations = environment.getProperty("r2batis.mapper-locations");
         if (mapperLocations == null)
             mapperLocations = "classpath:mapper/**/*.xml";
 
