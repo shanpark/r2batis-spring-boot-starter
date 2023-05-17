@@ -44,7 +44,6 @@ public class R2batisAutoConfiguration implements BeanDefinitionRegistryPostProce
 
     @Override
     public void setEnvironment(Environment environment) {
-        log.trace("R2batisAutoConfiguration class loaded.");
         this.environment = environment;
     }
 
@@ -75,7 +74,7 @@ public class R2batisAutoConfiguration implements BeanDefinitionRegistryPostProce
      * @return 생성된 InterfaceImpl 객체가 담겨 있는 Map 객체.
      */
     private Map<String, InterfaceImpl> scanMapperXml() {
-        String mapperPath = environment.getProperty("r2dbc.mapper-locations");
+        String mapperPath = environment.getProperty("r2batis.mapper-locations");
         if (mapperPath == null)
             mapperPath = "./**/*.xml";
         Map<String, InterfaceImpl> mapperMap = new HashMap<>();
@@ -170,7 +169,7 @@ public class R2batisAutoConfiguration implements BeanDefinitionRegistryPostProce
                                 }
                             }
                         }
-                    } catch (ClassNotFoundException e) {
+                    } catch (NoClassDefFoundError | ClassNotFoundException e) {
                         // just ignore this class..
                     }
                 } else {
