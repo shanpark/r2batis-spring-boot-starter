@@ -1,6 +1,6 @@
 [![](https://www.jitpack.io/v/shanpark/r2batis-spring-boot-starter.svg)](https://www.jitpack.io/#shanpark/r2batis-spring-boot-starter)
 
-# R2batis
+# R2Batis
 
 Framework for Spring Data R2DBC (Similar to MyBatis)
 
@@ -35,7 +35,7 @@ dependencies {
 
 ```yaml
 r2batis:
-  mapper-locations: mapper/**/*.xml
+  mapper-locations: classpath:mapper/**/*.xml #, xxx, yyy, ...
 ```
 
 ## 3. Example

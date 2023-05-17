@@ -26,6 +26,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc:3.0.6'
     implementation 'org.springframework.boot:spring-boot-autoconfigure-processor:3.0.6'
     api 'ognl:ognl:3.3.3'
+    api 'org.apache.ant:ant:1.10.13'
 
     compileOnly 'org.projectlombok:lombok:1.18.26'
     annotationProcessor 'org.projectlombok:lombok:1.18.26'
