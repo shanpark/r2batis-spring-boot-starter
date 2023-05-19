@@ -63,7 +63,6 @@ public class MethodImpl {
         ParamInfo[] paramInfos = getParamInfos(method.getParameters());
 
         String sql = query.generateSql(paramInfos, args, placeholderMap, paramMap, bindSet);
-        log.trace("Generated SQL: {}", sql);
         DatabaseClient.GenericExecuteSpec spec = databaseClient.sql(sql);
         try {
             for (String placeholder : bindSet) {
