@@ -2,7 +2,7 @@ package io.github.shanpark.r2batis.util;
 
 import io.github.shanpark.r2batis.types.*;
 
-import java.sql.Date;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -67,8 +67,10 @@ public class TypeUtils {
      * @return 변환을 지원하는 경우 변환된 객체. 그렇지 않은 경우 원본 객체.
      */
     public static Object convertForParam(Object param) {
-        if (param instanceof Date) // R2DBC does not support java.sql.Date
-            return ((Date) param).toLocalDate();
+        if (param instanceof java.sql.Date) // R2DBC does not support java.sql.Date.
+            return ((java.sql.Date) param).toLocalDate();
+        else if (param instanceof java.util.Date) // R2DBC does not support java.util.Date.
+            return ((java.util.Date) param).toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
 
         return param;
     }
