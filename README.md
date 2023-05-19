@@ -24,12 +24,12 @@ repositories {
 dependencies {
     ...
     implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
-    implementation 'com.github.shanpark:r2batis-spring-boot-starter:0.0.5'
+    implementation 'com.github.shanpark:r2batis-spring-boot-starter:0.0.7'
     // include vendor dependent R2DBC driver.
 }
 ```
 
-## 2. Config
+## 2. Configuration
 
 ### application.yml
 
