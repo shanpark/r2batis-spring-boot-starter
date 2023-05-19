@@ -8,7 +8,7 @@ Framework for Spring Data R2DBC (Similar to MyBatis)
 
 1. All classes in the mapper XML file must use the full package path.    
    This is because there is no type alias feature.
-2. For the same reason, you should use wrapper classes instead of primitive types.
+2. For the same reason, use wrapper classes instead of primitive types.
 
 ## 1. Intall
 
