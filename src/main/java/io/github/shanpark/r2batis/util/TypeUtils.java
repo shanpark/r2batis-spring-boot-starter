@@ -67,9 +67,10 @@ public class TypeUtils {
      * @return 변환을 지원하는 경우 변환된 객체. 그렇지 않은 경우 원본 객체.
      */
     public static Object convertForParam(Object param) {
-        if (param instanceof java.sql.Date) // R2DBC does not support java.sql.Date.
+        Class<?> paramClass = param.getClass();
+        if (java.sql.Date.class.equals(paramClass)) // R2DBC does not support java.sql.Date.
             return ((java.sql.Date) param).toLocalDate();
-        else if (param instanceof java.util.Date) // R2DBC does not support java.util.Date.
+        else if (java.util.Date.class.equals(paramClass)) // R2DBC does not support java.util.Date.
             return ((java.util.Date) param).toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
 
         return param;
