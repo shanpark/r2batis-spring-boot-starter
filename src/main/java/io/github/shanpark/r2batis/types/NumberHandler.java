@@ -15,38 +15,38 @@ public class NumberHandler implements TypeHandler {
     }
 
     @Override
-    public Object convert(Object value, Class<?> targetClazz) {
-        if (Byte.class.equals(targetClazz) || byte.class.equals(targetClazz))
+    public Object convert(Object value, Class<?> targetClass) {
+        if (Byte.class.equals(targetClass) || byte.class.equals(targetClass))
             return ((Number) value).byteValue();
-        else if (Short.class.equals(targetClazz) || short.class.equals(targetClazz))
+        else if (Short.class.equals(targetClass) || short.class.equals(targetClass))
             return ((Number) value).shortValue();
-        else if (Integer.class.equals(targetClazz) || int.class.equals(targetClazz))
+        else if (Integer.class.equals(targetClass) || int.class.equals(targetClass))
             return ((Number) value).intValue();
-        else if (Long.class.equals(targetClazz) || long.class.equals(targetClazz))
+        else if (Long.class.equals(targetClass) || long.class.equals(targetClass))
             return ((Number) value).longValue();
-        else if (Float.class.equals(targetClazz) || float.class.equals(targetClazz))
+        else if (Float.class.equals(targetClass) || float.class.equals(targetClass))
             return ((Number) value).floatValue();
-        else if (Double.class.equals(targetClazz) || double.class.equals(targetClazz))
+        else if (Double.class.equals(targetClass) || double.class.equals(targetClass))
             return ((Number) value).doubleValue();
-        else if (Character.class.equals(targetClazz) || char.class.equals(targetClazz))
+        else if (Character.class.equals(targetClass) || char.class.equals(targetClass))
             return (char) ((Number) value).intValue();
-        else if (Boolean.class.equals(targetClazz) || boolean.class.equals(targetClazz))
+        else if (Boolean.class.equals(targetClass) || boolean.class.equals(targetClass))
             return ((Number) value).longValue() != 0;
-        else if (String.class.equals(targetClazz))
+        else if (String.class.equals(targetClass))
             return value.toString();
-        else if (ZonedDateTime.class.equals(targetClazz))
+        else if (ZonedDateTime.class.equals(targetClass))
             return Instant.ofEpochMilli(((Number) value).longValue()).atZone(ZoneId.systemDefault());
-        else if (LocalDateTime.class.equals(targetClazz))
+        else if (LocalDateTime.class.equals(targetClass))
             return Instant.ofEpochMilli(((Number) value).longValue()).atZone(ZoneId.systemDefault()).toLocalDateTime();
-        else if (LocalDate.class.equals(targetClazz))
+        else if (LocalDate.class.equals(targetClass))
             return Instant.ofEpochMilli(((Number) value).longValue()).atZone(ZoneId.systemDefault()).toLocalDate();
-        else if (java.sql.Date.class.equals(targetClazz))
+        else if (java.sql.Date.class.equals(targetClass))
             return new java.sql.Date(((Number) value).longValue());
-        else if (java.util.Date.class.equals(targetClazz))
+        else if (java.util.Date.class.equals(targetClass))
             return new java.util.Date(((Number) value).longValue());
-        else if (Instant.class.equals(targetClazz))
+        else if (Instant.class.equals(targetClass))
             return Instant.ofEpochMilli(((Number) value).longValue());
 
-        throw new ClassCastException(String.format("Can't cast '%s' to type '%s'.", value, targetClazz.getName()));
+        throw new ClassCastException(String.format("Can't cast '%s' to type '%s'.", value, targetClass.getName()));
     }
 }

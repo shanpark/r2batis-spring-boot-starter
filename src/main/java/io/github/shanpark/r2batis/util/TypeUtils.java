@@ -43,17 +43,17 @@ public class TypeUtils {
      * 변환이 불가능한 source 값과 target 타입이 지정되면 ClassCastException이 발생한다.
      *
      * @param value 변환을 할 source 값 객체
-     * @param targetClazz 변환하고자 하는 target 타입 클래스 객체
-     * @return targetClazz으로 변환된 값 객체.
+     * @param targetClass 변환하고자 하는 target 타입 클래스 객체
+     * @return targetClass로 변환된 값 객체.
      */
-    public static Object convert(Object value, Class<?> targetClazz) {
+    public static Object convert(Object value, Class<?> targetClass) {
         Class<?> sourceClass = value.getClass();
         Optional<TypeHandler> typeHandler = supports.stream()
                 .filter(handler -> handler.canHandle(sourceClass))
                 .findFirst();
 
         if (typeHandler.isPresent())
-            return typeHandler.get().convert(value, targetClazz);
+            return typeHandler.get().convert(value, targetClass);
 
         throw new ClassCastException(String.format("Can't cast '%s' type value. No TypeHandler is available.", sourceClass.getName()));
     }
