@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'io.github.shanpark'
-version '0.0.7'
+version '0.0.8'
 sourceCompatibility = '17'
 
 repositories {
@@ -16,7 +16,7 @@ publishing {
         maven(MavenPublication) {
             groupId = 'io.github.shanpark'
             artifactId = 'r2batis-spring-boot-starter'
-            version = '0.0.7'
+            version = '0.0.8'
             from components.java
         }
     }
