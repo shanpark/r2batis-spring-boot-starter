@@ -72,3 +72,10 @@ public interface CustomerMapper {
 
 </mapper>
 ```
+
+## 4. Notes
+
+  - The `<selectKey>` element can only be used within an `<insert>` element and can be used only once.
+  - The `keyColumn` attribute of the `<selectKey>` element can only contain a single column name.
+  - `<insert>`, `<update>`, `<delete>` elements return the number of affected rows.  
+    And the result type is `Long`. (MySQL, MaraiDB implementation tested.)

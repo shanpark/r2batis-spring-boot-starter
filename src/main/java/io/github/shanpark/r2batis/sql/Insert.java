@@ -9,6 +9,7 @@ import org.w3c.dom.NodeList;
 public class Insert extends Query {
     private final boolean useGeneratedKeys;
     private final String keyProperty;
+    private SelectKey selectKey = null;
 
     public Insert(Element element) {
         super(element);
@@ -28,7 +29,14 @@ public class Insert extends Query {
                 if (!content.isBlank())
                     sqlNodes.add(new Sql(content.trim()));
             } else if (node.getNodeType() == Node.ELEMENT_NODE) {
-                sqlNodes.add(SqlNode.newSqlNode((Element) node));
+                if (node.getNodeName().equals("selectKey")) { // <insert> 에는 <selectKey> 가 가능하다.
+                    if (selectKey == null)
+                        selectKey = new SelectKey((Element) node); // selectKey는 한 개만 가능.
+                    else
+                        throw new RuntimeException("The <selectKey> element should only be used once within an <insert> element.");
+                } else {
+                    sqlNodes.add(SqlNode.newSqlNode((Element) node));
+                }
             }
         }
     }

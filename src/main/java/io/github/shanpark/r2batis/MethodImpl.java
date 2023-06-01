@@ -3,6 +3,7 @@ package io.github.shanpark.r2batis;
 import io.github.shanpark.r2batis.sql.Insert;
 import io.github.shanpark.r2batis.sql.Query;
 import io.github.shanpark.r2batis.sql.Select;
+import io.github.shanpark.r2batis.sql.SelectKey;
 import io.github.shanpark.r2batis.util.ReflectionUtils;
 import io.github.shanpark.r2batis.util.TypeUtils;
 import lombok.AllArgsConstructor;
@@ -12,7 +13,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import ognl.Ognl;
 import ognl.OgnlException;
+import org.reactivestreams.Publisher;
 import org.springframework.r2dbc.core.DatabaseClient;
+import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -55,7 +58,86 @@ public class MethodImpl {
      * @param args Mapper 인터페이스의 메소드를 호출할 때 전달된 argument 들.
      * @return Mapper 인터페이스가 반환해야 하는 값.
      */
-    public Object invoke(DatabaseClient databaseClient, Method method, Object[] args) {
+    public Object invoke(DatabaseClient databaseClient, TransactionalOperator transactionalOperator, Method method, Object[] args) {
+        if (query instanceof Insert insert) {
+            if (insert.getSelectKey() != null) {
+                if (insert.getSelectKey().getOrder().equalsIgnoreCase("before")) {
+                    return execSelectKeySql(databaseClient, insert.getSelectKey(), method, args)
+                            .then((Mono<?>) execBodySql(databaseClient, method, args))
+                            .as(transactionalOperator::transactional);
+                } else if (insert.getSelectKey().getOrder().equalsIgnoreCase("after")) {
+                    return ((Mono<?>) execBodySql(databaseClient, method, args))
+                            .flatMap(result ->
+                                    execSelectKeySql(databaseClient, insert.getSelectKey(), method, args).then(Mono.just(result))
+                            )
+                            .as(transactionalOperator::transactional);
+                }
+            }
+        }
+
+        return execBodySql(databaseClient, method, args);
+    }
+
+    /**
+     * &lt;selectKey&gt; 구문을 실행하는 Mono 생성.
+     * &lt;selectKey&gt;의 SQL 문은 사실 자신이 속한 본문의 SQL과는 전혀 별개로 수행되어야 한다.
+     * 단지 argument 정보를 공유할 뿐이며 실행 결과로 argument에 실행 결과 값이 반영될 것이다.
+     *
+     * @param databaseClient SQL을 실행할 DatabaseClient 객체.
+     * @param selectKey &lt;selectKey&gt; Query 객체.
+     * @param method Mapper 인터페이스의 Method 객체.
+     * @param args Mapper 인터페이스의 메소드를 호출할 때 전달된 argument 들.
+     * @return selectKey 구문이 반환하는 값을 발행하는 Mono 객체.
+     */
+    private Mono<?> execSelectKeySql(DatabaseClient databaseClient, SelectKey selectKey, Method method, Object[] args) {
+        Map<String, Class<?>> placeholderMap = new HashMap<>();
+        Map<String, Object> paramMap = new HashMap<>();
+        Set<String> bindSet = new HashSet<>();
+
+        ParamInfo[] paramInfos = getParamInfos(method.getParameters());
+
+        String sql = selectKey.generateSql(paramInfos, args, placeholderMap, paramMap, bindSet);
+        DatabaseClient.GenericExecuteSpec spec = databaseClient.sql(sql);
+        try {
+            for (String placeholder : bindSet) {
+                Object param = Ognl.getValue(placeholder, paramMap);
+                if (param == null)
+                    spec = spec.bindNull(placeholder, placeholderMap.get(placeholder));
+                else
+                    spec = spec.bind(placeholder, TypeUtils.convertForParam(param));
+            }
+        } catch (OgnlException e) {
+            throw new RuntimeException(e);
+        }
+
+        return spec.fetch()
+                .one()
+                .doOnNext(resultMap -> {
+                    Object selectedValue;
+                    if (!selectKey.getKeyColumn().isBlank()) {
+                        selectedValue = resultMap.get(selectKey.getKeyColumn());
+                        if (selectedValue == null)
+                            throw new RuntimeException("The 'keyColumn' attribute used in the <selectKey> element is not valid.");
+                    } else {
+                        selectedValue = resultMap.values().iterator().next();
+                    }
+                    selectedValue = TypeUtils.convert(selectedValue, selectKey.getResultClass());
+
+                    try {
+                        String[] fields = selectKey.getKeyProperty().split("\\.");
+                        if (fields.length == 1) {
+                            Ognl.setValue(selectKey.getKeyProperty(), args[0], selectedValue);
+                        } else {
+                            Ognl.setValue(selectKey.getKeyProperty().substring(selectKey.getKeyProperty().indexOf('.') + 1), // 맨 앞의 "field." 부분은 떼 내야 한다.
+                                    ReflectionUtils.findArgument(fields[0], paramInfos, args), selectedValue);
+                        }
+                    } catch (OgnlException e) {
+                        throw new RuntimeException("The 'keyProperty' expression used in the <selectKey> element is not valid.", e);
+                    }
+                });
+    }
+
+    public Publisher<?> execBodySql(DatabaseClient databaseClient, Method method, Object[] args) {
         Map<String, Class<?>> placeholderMap = new HashMap<>();
         Map<String, Object> paramMap = new HashMap<>();
         Set<String> bindSet = new HashSet<>();
@@ -85,12 +167,12 @@ public class MethodImpl {
                     spec = spec.filter(s -> s.returnGeneratedValues(((Insert) query).getKeyProperty()));
                     return fetchByReturnType(spec, method, insert);
                 } else {
-                    return fetchRowsUpdated(spec, method, query);
+                    return fetchRowsUpdated(spec, query);
                 }
             } else if (query instanceof Select) { // select
                 return fetchByReturnType(spec, method, query);
             } else { // update, delete
-                return fetchRowsUpdated(spec, method, query);
+                return fetchRowsUpdated(spec, query);
             }
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
@@ -114,7 +196,7 @@ public class MethodImpl {
      * @param query XML 맵퍼에서 생성된 SQL Query 객체.
      * @return SQL을 수행하고 값을 발행할 Publisher 객체. (Mono 또는 Flux)
      */
-    private Object fetchByReturnType(DatabaseClient.GenericExecuteSpec spec, Method method, Query query) throws ClassNotFoundException {
+    private Publisher<?> fetchByReturnType(DatabaseClient.GenericExecuteSpec spec, Method method, Query query) throws ClassNotFoundException {
         if (Flux.class.isAssignableFrom(method.getReturnType())) {
             return spec.fetch()
                     .all()
@@ -132,18 +214,16 @@ public class MethodImpl {
      * Long 같은 다른 숫자 타입으로 변환하길 원한다면 resultType을 지정해서 받는다.
      *
      * @param spec DatabaseClient를 통해서 생성한 GenericExecuteSpec 객체
-     * @param method 현재 호출된 Mapper 인터페이스의 Method 객체
      * @param query XML 맵퍼에서 생성된 SQL Query 객체.
      * @return SQL을 수행하고 영향 받은 행의 갯수 발행할 Publisher 객체.
      */
-    private Object fetchRowsUpdated(DatabaseClient.GenericExecuteSpec spec, Method method, Query query) {
-        Mono<?> mono;
-        if ((query.getResultClass() != null) && !query.getResultClass().equals(Integer.class))
-            mono = spec.fetch().rowsUpdated()
+    private Mono<?> fetchRowsUpdated(DatabaseClient.GenericExecuteSpec spec, Query query) {
+        if ((query.getResultClass() != null) && !query.getResultClass().equals(Long.class)) // rowsUpdated()는 Mono<Long> 반환
+            return spec.fetch()
+                    .rowsUpdated()
                     .map(count -> TypeUtils.convert(count, query.getResultClass()));
         else
-            mono = spec.fetch().rowsUpdated();
-
-        return Flux.class.isAssignableFrom(method.getReturnType()) ? mono.flux() : mono;
+            return spec.fetch()
+                    .rowsUpdated();
     }
 }
