@@ -24,7 +24,7 @@ repositories {
 dependencies {
     ...
     implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
-    implementation 'com.github.shanpark:r2batis-spring-boot-starter:0.0.7'
+    implementation 'com.github.shanpark:r2batis-spring-boot-starter:0.0.9'
     // include vendor dependent R2DBC driver.
 }
 ```
@@ -40,6 +40,16 @@ r2batis:
 
 ## 3. Example
 
+
+```java
+@Data
+public class CustomerVo {
+    private Long id;
+    private String name;
+    private String email;
+}
+```
+
 ### Interface
 
 ```java
@@ -51,10 +61,12 @@ package com.example.mapper;
 public interface CustomerMapper {
     Mono<CustomerVo> getCustomer(Long customerId);
     Flux<CustomerVo> getCustomerList();
+    Mono<Integer> insertCustomer(CustomerVo customerVo);
 }
 ```
 
 ### Mapper XML
+
 ```xml
 <?xml version="1.0" encoding="UTF-8" ?>
 <mapper namespace="com.example.mapper.CustomerMapper" >
@@ -69,7 +81,19 @@ public interface CustomerMapper {
         SELECT *
         FROM Customer
     </select>
+    
+    <insert id="insertCustomer" resultType="java.lang.Integer">
+        <selectKey keyProperty="id" resultType="java.lang.Long" order="BEFORE">
+            SELECT MAX(id) + 1
+            FROM Customer
+        </selectKey>
 
+        INSERT INTO Customer
+            (name, email)
+        VALUES
+            (:name, :email)
+    </insert>
+    
 </mapper>
 ```
 

@@ -47,15 +47,19 @@ public class TypeUtils {
      * @return targetClass로 변환된 값 객체.
      */
     public static Object convert(Object value, Class<?> targetClass) {
-        Class<?> sourceClass = value.getClass();
-        Optional<TypeHandler> typeHandler = supports.stream()
-                .filter(handler -> handler.canHandle(sourceClass))
-                .findFirst();
+        if (value != null) {
+            Class<?> sourceClass = value.getClass();
+            Optional<TypeHandler> typeHandler = supports.stream()
+                    .filter(handler -> handler.canHandle(sourceClass))
+                    .findFirst();
 
-        if (typeHandler.isPresent())
-            return typeHandler.get().convert(value, targetClass);
+            if (typeHandler.isPresent())
+                return typeHandler.get().convert(value, targetClass);
 
-        throw new ClassCastException(String.format("Can't cast '%s' type value. No TypeHandler is available.", sourceClass.getName()));
+            throw new ClassCastException(String.format("Can't cast '%s' type value. No TypeHandler is available.", sourceClass.getName()));
+        } else {
+            return null; // null은 특정 타입으로 변환을 해도 null이다.
+        }
     }
 
     /**
