@@ -32,8 +32,8 @@ import java.util.stream.Stream;
 
 public class BeanDefinitionRegistryPostProcessorImpl implements BeanDefinitionRegistryPostProcessor {
 
-    private Environment environment;
-    private ApplicationContext applicationContext;
+    private final Environment environment;
+    private final ApplicationContext applicationContext;
 
     public BeanDefinitionRegistryPostProcessorImpl(Environment environment, ApplicationContext applicationContext) {
         this.environment = environment;
