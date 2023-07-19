@@ -21,14 +21,14 @@ public final class Sql extends SqlNode {
     }
 
     @Override
-    public void evaluateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, Map<String, Class<?>> placeholderMap, Map<String, Object> paramMap) {
+    public void evaluateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Class<?>> placeholderMap, Map<String, Object> paramMap) {
         if ((sql != null) && (!sql.isBlank())) {
             for (String placeholder : getPlaceholderSet()) {
                 if (!placeholderMap.containsKey(placeholder)) {
                     String[] fields = placeholder.split("\\.");
-                    Class<?> type = ReflectionUtils.getFieldsType(fields, paramInfos);
+                    Class<?> type = ReflectionUtils.getFieldsType(fields, paramInfos, orgArgCount);
                     placeholderMap.put(placeholder, type);
-                    paramMap.put(fields[0], ReflectionUtils.findArgument(fields[0], paramInfos, args));
+                    paramMap.put(fields[0], ReflectionUtils.findArgument(fields[0], paramInfos, args, orgArgCount));
                 }
             }
         }

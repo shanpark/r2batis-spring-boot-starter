@@ -1,6 +1,7 @@
 package io.github.shanpark.r2batis.sql;
 
 import io.github.shanpark.r2batis.MethodImpl;
+import io.github.shanpark.r2batis.util.ReflectionUtils;
 import lombok.Getter;
 import ognl.Ognl;
 import org.w3c.dom.Element;
@@ -56,19 +57,18 @@ public final class Foreach extends SqlNode {
     }
 
     @Override
-    public void evaluateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, Map<String, Class<?>> placeholderMap, Map<String, Object> paramMap) {
+    public void evaluateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Class<?>> placeholderMap, Map<String, Object> paramMap) {
         collectionParam = null;
 
         // collection에 지정된 건 argument.field 일 수도 있으므로 Ognl이 적용되어야 한다.
-        String paramName = collection.split("\\.")[0].trim();
-        for (MethodImpl.ParamInfo paramInfo : paramInfos) {
-            if (paramName.equals(paramInfo.getName())) {
-                try {
-                    collectionParam = (Collection<?>) Ognl.getValue(collection, paramMap); // 가져온 값은 반드시 Collection 이어야 한다. 아니면 ClassCaseException이 발생하겠지.
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
+        try {
+            String[] fields = collection.split("\\.");
+            if (fields.length == 1)
+                collectionParam = (Collection<?>) ReflectionUtils.findArgument(collection.trim(), paramInfos, args, orgArgCount); // 가져온 값은 반드시 Collection 이어야 한다. 아니면 ClassCaseException이 발생하겠지.
+            else
+                collectionParam = (Collection<?>) Ognl.getValue(collection.substring(collection.indexOf('.') + 1), ReflectionUtils.findArgument(fields[0], paramInfos, args, orgArgCount));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
 
         if (collectionParam != null && !collectionParam.isEmpty()) {
@@ -93,7 +93,7 @@ public final class Foreach extends SqlNode {
                 tempParamMap.clear();
                 Query.initParamMap(tempParamMap, paramInfos, args); // foreach 하위의 구문은 다시 item과 index를 넣고 다시 초기화 해서 evaluate해야 한다.
                 for (SqlNode sqlNode : sqlNodes)
-                    sqlNode.evaluateSql(paramInfos, args, tempPlaceholderMap, tempParamMap); // 이 foreach 안에서 item을 이용하는 foreach가 이중으로 있을 수 있기 때문에 collectionItem마다 해줘야 한다.
+                    sqlNode.evaluateSql(paramInfos, args, orgArgCount, tempPlaceholderMap, tempParamMap); // 이 foreach 안에서 item을 이용하는 foreach가 이중으로 있을 수 있기 때문에 collectionItem마다 해줘야 한다.
 
                 for (Map.Entry<String, Class<?>> entry : tempPlaceholderMap.entrySet()) {
                     String key = entry.getKey();
@@ -101,21 +101,23 @@ public final class Foreach extends SqlNode {
                     String newIndexName = getNewIndexName(inx); // collectionItem의 새이름이다.
 
                     // 사용된 item, index 를 생성될 새 이름으로 변환한다.
-                    if (key.equals(item) || key.startsWith(item + "."))
+                    if (key.equals(item) || key.startsWith(item + ".")) {
                         key = newItemName + key.substring(item.length()); // item => :item_n_i, item.field => :item_n_i.field 형태로 변환.
-                    else if (key.equals(index))
+                        paramMap.putIfAbsent(newItemName, collectionItem);
+                    } else if (key.equals(index)) {
                         key = newIndexName; // index => :index_n_i:형태로 변환.
+                        paramMap.putIfAbsent(newIndexName, inx);
+                    } else {
+                        paramMap.putIfAbsent(key, ReflectionUtils.findArgument(key, paramInfos, args, orgArgCount));
+                    }
 
                     placeholderMap.put(key, entry.getValue());
-
-                    if (!item.isBlank()) // item이 지정되지 않았으면 굳이 만들어 넣을 필요 없다.
-                        paramMap.putIfAbsent(newItemName, collectionItem);
-                    if (!index.isBlank()) // index가 지정되지 않았으면 굳이 만들어 넣을 필요 없다.
-                        paramMap.putIfAbsent(newIndexName, inx);
                 }
 
                 inx++;
             }
+        } else {
+            throw new RuntimeException("Can't find the argument specified by the 'collction' parameter.");
         }
     }
 

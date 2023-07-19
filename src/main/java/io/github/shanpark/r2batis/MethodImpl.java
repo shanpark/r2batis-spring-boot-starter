@@ -59,23 +59,24 @@ public class MethodImpl {
      * @return Mapper 인터페이스가 반환해야 하는 값.
      */
     public Object invoke(DatabaseClient databaseClient, TransactionalOperator transactionalOperator, Method method, Object[] args) {
+        int orgArgCount = args == null ? 0 : args.length;
         if (query instanceof Insert insert) {
             if (insert.getSelectKey() != null) {
                 if (insert.getSelectKey().getOrder().equalsIgnoreCase("before")) {
-                    return execSelectKeySql(databaseClient, insert.getSelectKey(), method, args)
-                            .then((Mono<?>) execBodySql(databaseClient, method, args))
+                    return execSelectKeySql(databaseClient, insert.getSelectKey(), method, args, orgArgCount)
+                            .then(Mono.defer(() -> (Mono<?>) execBodySql(databaseClient, method, args, orgArgCount)))
                             .as(transactionalOperator::transactional);
                 } else if (insert.getSelectKey().getOrder().equalsIgnoreCase("after")) {
-                    return ((Mono<?>) execBodySql(databaseClient, method, args))
+                    return ((Mono<?>) execBodySql(databaseClient, method, args, orgArgCount))
                             .flatMap(result ->
-                                    execSelectKeySql(databaseClient, insert.getSelectKey(), method, args).then(Mono.just(result))
+                                    execSelectKeySql(databaseClient, insert.getSelectKey(), method, args, orgArgCount).then(Mono.just(result))
                             )
                             .as(transactionalOperator::transactional);
                 }
             }
         }
 
-        return execBodySql(databaseClient, method, args);
+        return execBodySql(databaseClient, method, args, orgArgCount);
     }
 
     /**
@@ -89,14 +90,14 @@ public class MethodImpl {
      * @param args Mapper 인터페이스의 메소드를 호출할 때 전달된 argument 들.
      * @return selectKey 구문이 반환하는 값을 발행하는 Mono 객체.
      */
-    private Mono<?> execSelectKeySql(DatabaseClient databaseClient, SelectKey selectKey, Method method, Object[] args) {
+    private Mono<?> execSelectKeySql(DatabaseClient databaseClient, SelectKey selectKey, Method method, Object[] args, int orgArgCount) {
         Map<String, Class<?>> placeholderMap = new HashMap<>();
         Map<String, Object> paramMap = new HashMap<>();
         Set<String> bindSet = new HashSet<>();
 
         ParamInfo[] paramInfos = getParamInfos(method.getParameters());
 
-        String sql = selectKey.generateSql(paramInfos, args, placeholderMap, paramMap, bindSet);
+        String sql = selectKey.generateSql(paramInfos, args, orgArgCount, placeholderMap, paramMap, bindSet);
         DatabaseClient.GenericExecuteSpec spec = databaseClient.sql(sql);
         try {
             for (String placeholder : bindSet) {
@@ -126,10 +127,10 @@ public class MethodImpl {
                     try {
                         String[] fields = selectKey.getKeyProperty().split("\\.");
                         if (fields.length == 1) {
-                            Ognl.setValue(selectKey.getKeyProperty(), args[0], selectedValue);
+                            Ognl.setValue(selectKey.getKeyProperty().trim(), args[0], selectedValue);
                         } else {
                             Ognl.setValue(selectKey.getKeyProperty().substring(selectKey.getKeyProperty().indexOf('.') + 1), // 맨 앞의 "field." 부분은 떼 내야 한다.
-                                    ReflectionUtils.findArgument(fields[0], paramInfos, args), selectedValue);
+                                    ReflectionUtils.findArgument(fields[0], paramInfos, args, orgArgCount), selectedValue);
                         }
                     } catch (OgnlException e) {
                         throw new RuntimeException("The 'keyProperty' expression used in the <selectKey> element is not valid.", e);
@@ -137,14 +138,14 @@ public class MethodImpl {
                 });
     }
 
-    public Publisher<?> execBodySql(DatabaseClient databaseClient, Method method, Object[] args) {
+    public Publisher<?> execBodySql(DatabaseClient databaseClient, Method method, Object[] args, int orgArgCount) {
         Map<String, Class<?>> placeholderMap = new HashMap<>();
         Map<String, Object> paramMap = new HashMap<>();
         Set<String> bindSet = new HashSet<>();
 
         ParamInfo[] paramInfos = getParamInfos(method.getParameters());
 
-        String sql = query.generateSql(paramInfos, args, placeholderMap, paramMap, bindSet);
+        String sql = query.generateSql(paramInfos, args, orgArgCount, placeholderMap, paramMap, bindSet);
         DatabaseClient.GenericExecuteSpec spec = databaseClient.sql(sql);
         try {
             for (String placeholder : bindSet) {

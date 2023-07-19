@@ -51,18 +51,18 @@ public class ReflectionUtils {
             field.setAccessible(false);
     }
 
-    public static Class<?> getFieldsType(String[] fields, MethodImpl.ParamInfo[] parameters) {
+    public static Class<?> getFieldsType(String[] fields, MethodImpl.ParamInfo[] parameters, int orgArgCount) {
         // interface 메소드로 넘어온 parameter중에서 place holder과 같은 이름의 parameter를 찾는다.
         int inx;
-        for (inx = 0; inx < parameters.length; inx++) {
+        for (inx = parameters.length - 1; inx >= 0; inx--) { // 뒤에 붙은 param들이 우선순위가 더 높기때문에 반드시 뒤에서부터 검색.
             if (fields[0].equals(parameters[inx].getName()))
                 break;
         }
 
-        if (inx < parameters.length) { // 같은 이름의 parameter 찾음.
+        if (inx >= 0) { // 같은 이름의 parameter 찾음.
             return ReflectionUtils.getFieldType(parameters[inx].getType(), fields, 1);
         } else { // 같은 이름의 parameter 못찾음.
-            if (parameters.length == 1) { // 맞는 parameter를 못찾았지만 parameter가 1개인 경우
+            if (orgArgCount == 1) { // 맞는 parameter를 못찾았지만 최초 argument가 1개인 경우
                 if (!TypeUtils.supports(parameters[0].getType())) { // 지원하는 primitive 타입이 아니라면 그 parameter각 POJO 객체라고 보고 그 객체의 field 중에서 찾는다.
                     return ReflectionUtils.getFieldType(parameters[0].getType(), fields, 0);
                 }
@@ -110,18 +110,18 @@ public class ReflectionUtils {
         return getterMethod;
     }
 
-    public static Object findArgument(String name, MethodImpl.ParamInfo[] paramInfos, Object[] arguments) {
+    public static Object findArgument(String name, MethodImpl.ParamInfo[] paramInfos, Object[] arguments, int orgArgCount) {
         // interface 메소드로 넘어온 parameter중에서 placeholder와 같은 이름의 parameter를 찾는다.
         int inx;
-        for (inx = 0; inx < paramInfos.length; inx++) {
+        for (inx = paramInfos.length - 1; inx >= 0 ; inx--) { // 뒤에 붙은 param들이 우선순위가 더 높기때문에 반드시 뒤에서부터 검색.
             if (name.equals(paramInfos[inx].getName()))
                 break;
         }
 
-        if (inx < paramInfos.length) { // 같은 이름의 parameter 찾음.
+        if (inx >= 0) { // 같은 이름의 parameter 찾음.
             return arguments[inx];
         } else { // 같은 이름의 parameter 못찾음.
-            if (paramInfos.length == 1) { // 맞는 parameter를 못찾았지만 parameter가 1개인 경우
+            if (orgArgCount == 1) { // 맞는 parameter를 못찾았지만 최초 argument가 1개인 경우
                 if (!TypeUtils.supports(paramInfos[0].getType())) { // 지원하는 primitive 타입이 아니라면 그 parameter각 POJO 객체라고 보고 그 객체의 field 중에서 찾는다.
                     try {
                         return Ognl.getValue(name, arguments[0]);

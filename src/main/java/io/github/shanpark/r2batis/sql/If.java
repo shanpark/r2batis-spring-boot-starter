@@ -36,9 +36,9 @@ public final class If extends SqlNode {
     }
 
     @Override
-    public void evaluateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, Map<String, Class<?>> placeholderMap, Map<String, Object> paramMap) {
+    public void evaluateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Class<?>> placeholderMap, Map<String, Object> paramMap) {
         for (SqlNode sqlNode : sqlNodes)
-            sqlNode.evaluateSql(paramInfos, args, placeholderMap, paramMap);
+            sqlNode.evaluateSql(paramInfos, args, orgArgCount, placeholderMap, paramMap);
     }
 
     @Override

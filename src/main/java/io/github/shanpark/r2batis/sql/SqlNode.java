@@ -43,7 +43,7 @@ public abstract class SqlNode {
      * @param placeholderMap 생성된 sql에서 뽑힌 placeholder와 그 타입을 담을 Map 객체.
      * @param paramMap 생성된 sql에서 뽑힌 placeholder와 실제 이 placeholder를 이용해서 Ognl로 값을 뽑아낼 수 있도록 생성할 Map 객체.
      */
-    public abstract void evaluateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, Map<String, Class<?>> placeholderMap, Map<String, Object> paramMap);
+    public abstract void evaluateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Class<?>> placeholderMap, Map<String, Object> paramMap);
 
     /**
      * 최종 생성된 SQL 문을 반환한다.
