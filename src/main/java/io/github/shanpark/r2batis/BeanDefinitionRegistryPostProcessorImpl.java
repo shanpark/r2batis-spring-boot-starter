@@ -5,6 +5,8 @@ import io.github.shanpark.r2batis.sql.Mapper;
 import io.github.shanpark.r2batis.sql.Query;
 import io.github.shanpark.r2batis.sql.XmlMapperParser;
 import org.apache.tools.ant.DirectoryScanner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
@@ -31,6 +33,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class BeanDefinitionRegistryPostProcessorImpl implements BeanDefinitionRegistryPostProcessor {
+
+    private static final Logger log = LoggerFactory.getLogger(BeanDefinitionRegistryPostProcessorImpl.class);
 
     private final Environment environment;
     private final ApplicationContext applicationContext;
@@ -66,53 +70,38 @@ public class BeanDefinitionRegistryPostProcessorImpl implements BeanDefinitionRe
         if (mapperLocations == null)
             mapperLocations = "classpath:mapper/**/*.xml";
 
+        boolean mapperFound = false;
         Map<String, InterfaceImpl> mapperMap = new HashMap<>();
         String[] mapperPathPatterns = mapperLocations.split("\\s*,\\s*");
         for (String mapperPathPattern : mapperPathPatterns) {
             if (mapperPathPattern.startsWith("classpath:"))
-                scanMapperXmlInResources(mapperMap, mapperPathPattern);
+                mapperFound = mapperFound || scanMapperXmlInResources(mapperMap, mapperPathPattern);
             else
-                scanMapperXmlInDir(mapperMap, mapperPathPattern);
+                mapperFound = mapperFound || scanMapperXmlInDir(mapperMap, mapperPathPattern);
         }
+
+        if (!mapperFound)
+            log.warn("No mapper xml file was found.");
+
         return mapperMap;
     }
 
-    private void scanMapperXmlInResources(Map<String, InterfaceImpl> mapperMap, String mapperPath) {
+    private boolean scanMapperXmlInResources(Map<String, InterfaceImpl> mapperMap, String mapperPath) {
         try {
             PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
             Resource[] resources = resolver.getResources(mapperPath);
-            for (Resource resource : resources) {
-                InputStream inputStream = resource.getInputStream();
+            for (Resource resource : resources)
+                generateInterfaceFromMapperXml(mapperMap, resource.getInputStream());
 
-                Mapper mapper = XmlMapperParser.parse(inputStream);
-                if (mapper != null) {
-                    InterfaceImpl interfaceImpl = new InterfaceImpl(mapper.getInterfaceName());
-
-                    if (!CollectionUtils.isEmpty(mapper.getSelectList())) { // null 체크도 해줌.
-                        for (Query query : mapper.getSelectList())
-                            interfaceImpl.addMethod(new MethodImpl(query.getId(), query));
-                    }
-                    if (!CollectionUtils.isEmpty(mapper.getInsertList())) {
-                        for (Query query : mapper.getInsertList())
-                            interfaceImpl.addMethod(new MethodImpl(query.getId(), query));
-                    }
-                    if (!CollectionUtils.isEmpty(mapper.getUpdateList())) {
-                        for (Query query : mapper.getUpdateList())
-                            interfaceImpl.addMethod(new MethodImpl(query.getId(), query));
-                    }
-                    if (!CollectionUtils.isEmpty(mapper.getDeleteList())) {
-                        for (Query query : mapper.getDeleteList())
-                            interfaceImpl.addMethod(new MethodImpl(query.getId(), query));
-                    }
-                    mapperMap.putIfAbsent(interfaceImpl.getName(), interfaceImpl); // 먼저 들어간 게 우선순위가 높다.
-                }
-            }
+            return true;
+        } catch (FileNotFoundException e) {
+            return false;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void scanMapperXmlInDir(Map<String, InterfaceImpl> mapperMap, String mapperPathPattern) {
+    private boolean scanMapperXmlInDir(Map<String, InterfaceImpl> mapperMap, String mapperPathPattern) {
         DirectoryScanner scanner = new DirectoryScanner();
         scanner.setIncludes(new String[]{ mapperPathPattern });
         if (!mapperPathPattern.startsWith(File.separator))
@@ -121,33 +110,40 @@ public class BeanDefinitionRegistryPostProcessorImpl implements BeanDefinitionRe
 
         try {
             String[] files = scanner.getIncludedFiles();
-            for (String file : files) {
-                InputStream inputStream = new FileInputStream(file);
-                Mapper mapper = XmlMapperParser.parse(inputStream);
-                if (mapper != null) {
-                    InterfaceImpl interfaceImpl = new InterfaceImpl(mapper.getInterfaceName());
-
-                    if (!CollectionUtils.isEmpty(mapper.getSelectList())) { // null 체크도 해줌.
-                        for (Query query : mapper.getSelectList())
-                            interfaceImpl.addMethod(new MethodImpl(query.getId(), query));
-                    }
-                    if (!CollectionUtils.isEmpty(mapper.getInsertList())) {
-                        for (Query query : mapper.getInsertList())
-                            interfaceImpl.addMethod(new MethodImpl(query.getId(), query));
-                    }
-                    if (!CollectionUtils.isEmpty(mapper.getUpdateList())) {
-                        for (Query query : mapper.getUpdateList())
-                            interfaceImpl.addMethod(new MethodImpl(query.getId(), query));
-                    }
-                    if (!CollectionUtils.isEmpty(mapper.getDeleteList())) {
-                        for (Query query : mapper.getDeleteList())
-                            interfaceImpl.addMethod(new MethodImpl(query.getId(), query));
-                    }
-                    mapperMap.putIfAbsent(interfaceImpl.getName(), interfaceImpl); // 먼저 들어간 게 우선순위가 높다.
-                }
+            if (files.length == 0) {
+                return false;
+            } else {
+                for (String file : files)
+                    generateInterfaceFromMapperXml(mapperMap, new FileInputStream(file));
+                return true;
             }
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void generateInterfaceFromMapperXml(Map<String, InterfaceImpl> mapperMap, InputStream inputStream) {
+        Mapper mapper = XmlMapperParser.parse(inputStream);
+        if (mapper != null) {
+            InterfaceImpl interfaceImpl = new InterfaceImpl(mapper.getInterfaceName());
+
+            if (!CollectionUtils.isEmpty(mapper.getSelectList())) { // null 체크도 해줌.
+                for (Query query : mapper.getSelectList())
+                    interfaceImpl.addMethod(new MethodImpl(query.getId(), query));
+            }
+            if (!CollectionUtils.isEmpty(mapper.getInsertList())) {
+                for (Query query : mapper.getInsertList())
+                    interfaceImpl.addMethod(new MethodImpl(query.getId(), query));
+            }
+            if (!CollectionUtils.isEmpty(mapper.getUpdateList())) {
+                for (Query query : mapper.getUpdateList())
+                    interfaceImpl.addMethod(new MethodImpl(query.getId(), query));
+            }
+            if (!CollectionUtils.isEmpty(mapper.getDeleteList())) {
+                for (Query query : mapper.getDeleteList())
+                    interfaceImpl.addMethod(new MethodImpl(query.getId(), query));
+            }
+            mapperMap.putIfAbsent(interfaceImpl.getName(), interfaceImpl); // 먼저 들어간 게 우선순위가 높다.
         }
     }
 
