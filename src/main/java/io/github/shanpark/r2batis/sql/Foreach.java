@@ -16,9 +16,8 @@ import java.util.regex.Pattern;
 public final class Foreach extends SqlNode {
 
     // 참고로 MyBatis는 nullable 속성이 하나 더 있다. 하지만 이건 nullable은 true이다.
-
     private final String collection; // required
-    private final String item; // required
+    private final String item;
     private final String index;
     private final String open;
     private final String close;
@@ -26,17 +25,14 @@ public final class Foreach extends SqlNode {
 
     private final String uniqueId;
     private final List<SqlNode> sqlNodes = new ArrayList<>();
-    private Collection<?> collectionParam = null;
 
     public Foreach(Element element) {
         collection = element.getAttribute("collection");
         if (collection.isBlank())
             throw new RuntimeException("The <foreach> element must include the 'collection' attribute.");
+
         item = element.getAttribute("item");
         index = element.getAttribute("index");
-        if (item.isBlank() && index.isBlank())
-            throw new RuntimeException("The <foreach> element must include the 'item' or 'index' attributes.");
-
         open = element.getAttribute("open");
         close = element.getAttribute("close");
         separator = element.getAttribute("separator");
@@ -58,7 +54,7 @@ public final class Foreach extends SqlNode {
 
     @Override
     public void evaluateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Class<?>> placeholderMap, Map<String, Object> paramMap) {
-        collectionParam = null;
+        Collection<?> collectionParam;
 
         // collection에 지정된 건 argument.field 일 수도 있으므로 Ognl이 적용되어야 한다.
         try {
@@ -71,23 +67,35 @@ public final class Foreach extends SqlNode {
             throw new RuntimeException(e);
         }
 
-        if (collectionParam != null && !collectionParam.isEmpty()) {
-            paramInfos = Arrays.copyOf(paramInfos, paramInfos.length + 2);
-            paramInfos[paramInfos.length - 2] = new MethodImpl.ParamInfo(index, Integer.class); // parameter로 index속성에 지정된 이름으로 parameter가 전달된 것처럼 하나 만들어 넣어준다.
+        if (!collectionParam.isEmpty()) {
+            int addedArgs = 0; // item, index 속성이 설정되어 있으면 임시로 paramInfos, args에 해당 값을 추가하여 마치 처음부터 인자로 받은 것처럼 해서 하위 sql문들을 렌더링한다.
+            if (!item.isBlank())
+                addedArgs++;
+            if (!index.isBlank())
+                addedArgs++;
 
-            args = Arrays.copyOf(args, args.length + 2);
+            if (addedArgs > 0) {
+                paramInfos = Arrays.copyOf(paramInfos, paramInfos.length + addedArgs);
+                args = Arrays.copyOf(args, args.length + addedArgs);
+
+                if (!index.isBlank()) // index는 항상 integer 형이므로 미리 설정한다.
+                    paramInfos[paramInfos.length - addedArgs] = new MethodImpl.ParamInfo(index, Integer.class); // parameter로 index속성에 지정된 이름으로 parameter가 전달된 것처럼 하나 만들어 넣어준다.
+            }
 
             Map<String, Class<?>> tempPlaceholderMap = new HashMap<>();
             Map<String, Object> tempParamMap = new HashMap<>();
-
             int inx = 0;
             for (Object collectionItem : collectionParam) {
                 // 실제 generate할 때 :item.xxx 를 모두 찾아서 placeholder와 그 값, 타입을 생성해서 map에 넣어줘야 한다.
                 // :index도 모두 다른 이름으로 placeholder를 생성해주고 값과, 타입(Integer.class) 생성해서 map에 넣어줘야 한다.
-                paramInfos[paramInfos.length - 1] = new MethodImpl.ParamInfo(item, collectionItem.getClass()); // parameter로 item속성에 지정된 이름으로 parameter가 전달된 것처럼 하나 만들어 넣어준다.
-
-                args[args.length - 2] = inx; // 실제 전달된 것처럼 argument를 만들어 넣는다.
-                args[args.length - 1] = collectionItem; // 실제 전달된 것처럼 argument를 만들어 넣는다.
+                if (!item.isBlank()) {
+                    paramInfos[paramInfos.length - 1] = new MethodImpl.ParamInfo(item, collectionItem.getClass()); // parameter로 item속성에 지정된 이름으로 parameter가 전달된 것처럼 하나 만들어 넣어준다.
+                    args[args.length - 1] = collectionItem; // 실제 전달된 것처럼 argument를 만들어 넣는다.
+                }
+                if (!index.isBlank()) {
+                    // paramInfos는 for loop 전에 이미 설정했다.
+                    args[args.length - addedArgs] = inx; // 실제 전달된 것처럼 argument를 만들어 넣는다.
+                }
 
                 tempPlaceholderMap.clear();
                 tempParamMap.clear();
@@ -101,11 +109,12 @@ public final class Foreach extends SqlNode {
                     String newIndexName = getNewIndexName(inx); // collectionItem의 새이름이다.
 
                     // 사용된 item, index 를 생성될 새 이름으로 변환한다.
+                    // item, index가 지정되지 않았으면 item, index는 모두 공백이고 key는 공백일 수 없으므로 item, index가 지정되었는지 따로 체크하지 않는다.
                     if (key.equals(item) || key.startsWith(item + ".")) {
-                        key = newItemName + key.substring(item.length()); // item => :item_n_i, item.field => :item_n_i.field 형태로 변환.
+                        key = newItemName + key.substring(item.length()); // item => :item_uid_inx, item.field => :item_uid_inx.field 형태로 변환.
                         paramMap.putIfAbsent(newItemName, collectionItem);
                     } else if (key.equals(index)) {
-                        key = newIndexName; // index => :index_n_i:형태로 변환.
+                        key = newIndexName; // index => :index_uid_inx:형태로 변환.
                         paramMap.putIfAbsent(newIndexName, inx);
                     } else {
                         paramMap.putIfAbsent(key, ReflectionUtils.findArgument(key, paramInfos, args, orgArgCount));
@@ -117,24 +126,35 @@ public final class Foreach extends SqlNode {
                 inx++;
             }
         } else {
-            throw new RuntimeException("Can't find the argument specified by the 'collction' parameter.");
+            throw new RuntimeException("Can't find the argument specified by the 'collection' parameter.");
         }
     }
 
     @Override
-    public String generateSql(Map<String, Object> paramMap, Set<String> bindSet) {
-        assert !item.isBlank();
+    public String generateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Object> paramMap, Set<String> bindSet) {
+        Collection<?> collectionParam;
 
-        if (collectionParam != null && !collectionParam.isEmpty()) {
+        // collection에 지정된 건 argument.field 일 수도 있으므로 Ognl이 적용되어야 한다.
+        try {
+            String[] fields = collection.split("\\.");
+            if (fields.length == 1)
+                collectionParam = (Collection<?>) ReflectionUtils.findArgument(collection.trim(), paramInfos, args, orgArgCount); // 가져온 값은 반드시 Collection 이어야 한다. 아니면 ClassCaseException이 발생하겠지.
+            else
+                collectionParam = (Collection<?>) Ognl.getValue(collection.substring(collection.indexOf('.') + 1), ReflectionUtils.findArgument(fields[0], paramInfos, args, orgArgCount));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        if (!collectionParam.isEmpty()) {
             StringBuilder sb = new StringBuilder();
             StringBuilder tempSb = new StringBuilder();
 
             int inx = 0;
-            Object prevItem = null;
-            Object prevIndex = null;
             for (Object element : collectionParam) {
                 // for loop 안에서 참조하는 item, index 값들을 마치 param에 전달된 것처럼 만들어서 넣어준다. <if>의 test 조건같은
                 // 곳에서 사용될 수 있기 때문에 만들어서 넣어줘야 한다.
+                Object prevItem = null;
+                Object prevIndex = null;
                 if (!item.isBlank())
                     prevItem = paramMap.putIfAbsent(item, element); // collection의 원소를 item 이름으로 넣어준다.
                 if (!index.isBlank())
@@ -143,16 +163,18 @@ public final class Foreach extends SqlNode {
                 // 실제 SQL 생성.
                 Set<String> tempBindSet = new HashSet<>();
                 for (SqlNode sqlNode : sqlNodes) {
-                    String sql = sqlNode.generateSql(paramMap, tempBindSet); // generateSql()은 trim을 해서 보내므로 따로 trim()은 필요없다.
+                    String sql = sqlNode.generateSql(paramInfos, args, orgArgCount, paramMap, tempBindSet); // generateSql()은 trim을 해서 보내므로 따로 trim()은 필요없다.
                     if (!sql.isBlank()) {
-                        tempSb.append(sql).append(separator);
+                        if (!sb.isEmpty())
+                            tempSb.append(sql).append(separator);
+
                         for (String key : tempBindSet) {
                             String newItemName = getNewItemName(inx); // collectionItem의 새 이름이다.
                             String newIndexName = getNewIndexName(inx); // index의 새 이름이다.
                             if (key.equals(item) || key.startsWith(item + "."))
-                                key = newItemName + key.substring(item.length()); // item => :item_n_i, item.field => :item_n_i.field 형태로 변환.
+                                key = newItemName + key.substring(item.length()); // item => :item_uid_inx, item.field => :item_uid_inx.field 형태로 변환.
                             else if (key.equals(index))
-                                key = newIndexName; // index => :index_n_i:형태로 변환.
+                                key = newIndexName; // index => :index_uid_inx:형태로 변환.
 
                             bindSet.add(key);
                         }
@@ -162,23 +184,24 @@ public final class Foreach extends SqlNode {
                 tempSb.setLength(0);
 
                 // loop 처음에 임시로 넣어준 for loop 안에서 참조하는 item, index 값들을 다시 복구해준다.
-                if (prevItem != null)
-                    paramMap.put(item, prevItem); // 이전에 이미 있던 item 이 있으면 다시 넣어준다.
-                else
-                    paramMap.remove(item); // 이전에 값이 없었으면 내가 넣은 item은 삭제해준다.
-
-                if (prevIndex != null)
-                    paramMap.put(index, prevIndex); // 이전에 이미 있던 item 이 있으면 다시 넣어준다.
-                else
-                    paramMap.remove(index); // 이전에 값이 없었으면 내가 넣은 item은 삭제해준다.
+                if (!item.isBlank()) {
+                    if (prevItem != null)
+                        paramMap.put(item, prevItem); // 이전에 이미 있던 item 이 있으면 다시 넣어준다.
+                    else
+                        paramMap.remove(item); // 이전에 값이 없었으면 내가 넣은 item은 삭제해준다.
+                }
+                if (!index.isBlank()) {
+                    if (prevIndex != null)
+                        paramMap.put(index, prevIndex); // 이전에 이미 있던 item 이 있으면 다시 넣어준다.
+                    else
+                        paramMap.remove(index); // 이전에 값이 없었으면 내가 넣은 item은 삭제해준다.
+                }
                 inx++;
             }
-            if (!sb.toString().isBlank())
-                sb.setLength(sb.length() - separator.length());
 
-            return ((((open != null) && !open.isBlank()) ? open + " " : "") +
+            return ((!open.isBlank() ? open + " " : "") +
                     sb +
-                    (((close != null) && !close.isBlank()) ? " " + close : "")).trim();
+                    (!close.isBlank() ? " " + close : "")).trim();
         } else {
             return "";
         }

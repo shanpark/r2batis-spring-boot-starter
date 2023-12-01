@@ -14,7 +14,7 @@ public final class Sql extends SqlNode {
     private static final Pattern COLON_IDENTIFIER_PATTERN = Pattern.compile(COLON_IDENTIFIER_REGEX);
 
     private final String sql;
-    private Set<String> placeholderSet = null;
+    private volatile Set<String> placeholderSet;
 
     public Sql(String sql) {
         this.sql = sql.trim();
@@ -35,20 +35,24 @@ public final class Sql extends SqlNode {
     }
 
     @Override
-    public String generateSql(Map<String, Object> paramMap, Set<String> bindSet) {
-        bindSet.addAll(placeholderSet); // 모두 binding 해야 함.
+    public String generateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Object> paramMap, Set<String> bindSet) {
+        bindSet.addAll(getPlaceholderSet()); // 모두 binding 해야 함.
         return sql;
     }
 
-    private Set<String> getPlaceholderSet() {
+    synchronized private Set<String> getPlaceholderSet() {
         if (placeholderSet == null) { // 한 번 정해지면 바뀔 일이 없으므로 캐슁하는게 맞다.
-            placeholderSet = new HashSet<>();
+            synchronized (this) {
+                if (placeholderSet == null) {
+                    placeholderSet = new HashSet<>();
 
-            String[] words = sql.split("[^A-Za-z\\d.:_]+"); // 모든 토큰 분리 간이 로직이다. 실제로는 더 정교해야 할 수도 있다.
-            for (String word : words) {
-                if (COLON_IDENTIFIER_PATTERN.matcher(word).matches()) {
-                    String placeholder = word.substring(1); // ':' 뗴고 넣는다.
-                    placeholderSet.add(placeholder);
+                    String[] words = sql.split("[^A-Za-z\\d.:_]+"); // 모든 토큰 분리 간이 로직이다. 실제로는 더 정교해야 할 수도 있다.
+                    for (String word : words) {
+                        if (COLON_IDENTIFIER_PATTERN.matcher(word).matches()) {
+                            String placeholder = word.substring(1); // ':' 뗴고 넣는다.
+                            placeholderSet.add(placeholder);
+                        }
+                    }
                 }
             }
         }

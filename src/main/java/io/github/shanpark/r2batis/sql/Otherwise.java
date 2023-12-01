@@ -39,10 +39,10 @@ public class Otherwise extends SqlNode {
     }
 
     @Override
-    public String generateSql(Map<String, Object> paramMap, Set<String> bindSet) {
+    public String generateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Object> paramMap, Set<String> bindSet) {
         StringBuilder sb = new StringBuilder();
         for (SqlNode sqlNode : sqlNodes)
-            sb.append(sqlNode.generateSql(paramMap, bindSet)).append(" "); // 반드시 공백 붙여야 함.
+            sb.append(sqlNode.generateSql(paramInfos, args, orgArgCount, paramMap, bindSet)).append(" "); // 반드시 공백 붙여야 함.
         return sb.toString().trim(); // 마지막엔 항상 trim()
     }
 }

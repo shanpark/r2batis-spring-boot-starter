@@ -13,7 +13,7 @@ import java.util.Set;
 public class Choose extends SqlNode {
 
     private final List<If> whenNodes = new ArrayList<>(); // <when>은 <if> 모양, 기능이 같다. 단지 <choose> 내에서만 의미가 있을 뿐이다.
-    private Otherwise otherwise = null;
+    private Otherwise otherwise;
 
     public Choose(Element element) {
         NodeList nodeList = element.getChildNodes();
@@ -26,9 +26,9 @@ public class Choose extends SqlNode {
                     throw new RuntimeException("The <choose> element can only contain <when> or <otherwise> elements.");
             } else if (node.getNodeType() == Node.ELEMENT_NODE) {
                 SqlNode child = SqlNode.newSqlNodeForChoose((Element) node);
-                if (child instanceof If)
+                if (child instanceof If) {
                     whenNodes.add((If) child);
-                else {
+                } else {
                     if (otherwise == null)
                         otherwise = (Otherwise) child;
                     else
@@ -50,16 +50,15 @@ public class Choose extends SqlNode {
     }
 
     @Override
-    public String generateSql(Map<String, Object> paramMap, Set<String> bindSet) {
-        String sql;
-        for (SqlNode sqlNode : whenNodes) {
-            sql = sqlNode.generateSql(paramMap, bindSet);
+    public String generateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Object> paramMap, Set<String> bindSet) {
+        for (If sqlNode : whenNodes) {
+            String sql = sqlNode.generateSql(paramInfos, args, orgArgCount, paramMap, bindSet);
             if (!sql.isBlank())
                 return sql.trim();
         }
 
         if (otherwise != null)
-            return otherwise.generateSql(paramMap, bindSet);
+            return otherwise.generateSql(paramInfos, args, orgArgCount, paramMap, bindSet);
 
         return "";
     }

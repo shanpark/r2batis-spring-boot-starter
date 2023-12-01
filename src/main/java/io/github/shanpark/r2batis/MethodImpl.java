@@ -9,7 +9,6 @@ import io.github.shanpark.r2batis.util.TypeUtils;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import ognl.Ognl;
 import ognl.OgnlException;
@@ -28,13 +27,12 @@ import java.util.Set;
 
 @Data
 @Slf4j
-@RequiredArgsConstructor
 public class MethodImpl {
 
-    private String name;
-    private Query query;
+    private final String name;
+    private final Query query;
 
-    private ParamInfo[] innerParams;
+    private volatile ParamInfo[] innerParams; // 캐슁 대상.
 
     @Data
     @NoArgsConstructor
@@ -47,7 +45,6 @@ public class MethodImpl {
     public MethodImpl(String name, Query query) {
         this.name = name;
         this.query = query;
-        innerParams = null;
     }
 
     /**
@@ -181,10 +178,14 @@ public class MethodImpl {
     }
 
     private ParamInfo[] getParamInfos(Parameter[] parameters) {
-        if (innerParams == null) {
-            innerParams = new ParamInfo[parameters.length];
-            for (int inx = 0; inx < parameters.length; inx++)
-                innerParams[inx] = new ParamInfo(parameters[inx].getName(), parameters[inx].getType());
+        if (innerParams == null) { // 한 번 생성하면 변동없으므로 캐슁한다.
+            synchronized (this) {
+                if (innerParams == null) {
+                    innerParams = new ParamInfo[parameters.length];
+                    for (int inx = 0; inx < parameters.length; inx++)
+                        innerParams[inx] = new ParamInfo(parameters[inx].getName(), parameters[inx].getType());
+                }
+            }
         }
         return innerParams;
     }

@@ -16,6 +16,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import java.io.*;
@@ -32,6 +33,7 @@ import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Component
 public class BeanDefinitionRegistryPostProcessorImpl implements BeanDefinitionRegistryPostProcessor {
 
     private static final Logger log = LoggerFactory.getLogger(BeanDefinitionRegistryPostProcessorImpl.class);
@@ -45,6 +47,7 @@ public class BeanDefinitionRegistryPostProcessorImpl implements BeanDefinitionRe
     }
 
     @Override
+    @SuppressWarnings("NullableProblems")
     public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
         // 여기서 beanFactory 인자는 singleton으로 앞으로도 불변이어야 한다.
         Map<String, InterfaceImpl> mapperMap = scanMapperXml();
@@ -55,6 +58,7 @@ public class BeanDefinitionRegistryPostProcessorImpl implements BeanDefinitionRe
     }
 
     @Override
+    @SuppressWarnings("NullableProblems")
     public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
         // do nothing
     }

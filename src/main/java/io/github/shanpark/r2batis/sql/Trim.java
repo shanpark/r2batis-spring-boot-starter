@@ -15,9 +15,8 @@ import java.util.regex.Pattern;
 public class Trim extends SqlNode {
 
     private final String prefix;
-
-    private final Pattern START_AND_PATTERN;
-    private final Pattern LAST_AND_PATTERN;
+    private final Pattern prefixPattern;
+    private final Pattern suffixPattern;
 
     private final List<SqlNode> sqlNodes = new ArrayList<>();
 
@@ -39,8 +38,8 @@ public class Trim extends SqlNode {
         if (prefixOverrides.isEmpty() && suffixOverrides.isEmpty())
             throw new RuntimeException("'prefixOverrides' or 'suffixOverrides' attribute should be specified for <trim>.");
 
-        START_AND_PATTERN = prefixOverrides.isBlank() ? null : Pattern.compile("(?i)^(" + prefixOverrides + ")");
-        LAST_AND_PATTERN = suffixOverrides.isBlank() ? null : Pattern.compile("(?i)(" + suffixOverrides + ")$");
+        prefixPattern = prefixOverrides.isBlank() ? null : Pattern.compile("(?i)^(" + prefixOverrides + ")");
+        suffixPattern = suffixOverrides.isBlank() ? null : Pattern.compile("(?i)(" + suffixOverrides + ")$");
 
         NodeList nodeList = element.getChildNodes();
         for (int inx = 0; inx < nodeList.getLength(); inx++) {
@@ -63,24 +62,24 @@ public class Trim extends SqlNode {
     }
 
     @Override
-    public String generateSql(Map<String, Object> paramMap, Set<String> bindSet) {
+    public String generateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Object> paramMap, Set<String> bindSet) {
         StringBuilder sb = new StringBuilder();
         for (SqlNode sqlNode : sqlNodes)
-            sb.append(sqlNode.generateSql(paramMap, bindSet)).append(" "); // 반드시 공백 붙여야 함.
+            sb.append(sqlNode.generateSql(paramInfos, args, orgArgCount, paramMap, bindSet)).append(" "); // 반드시 공백 붙여야 함.
 
         String sql = sb.toString().trim();
         if (sql.isBlank()) {
-            return prefix; // 아무런 sql이 생성되지 않았더라도 prefix는 생성해야 한다.
+            return prefix; // 아무런 sql이 생성되지 않았더라도 prefix는 생성해야 한다. // TODO MyBatis의 <where>의 동작을 보면 아닌 듯하다. 아무것도 없으면 prefix도 없어야 맞는듯..
         } else {
             // 시작에 AND 또는 OR 가 있으면 삭제.
-            if (START_AND_PATTERN != null) {
-                Matcher matcher = START_AND_PATTERN.matcher(sql);
+            if (prefixPattern != null) {
+                Matcher matcher = prefixPattern.matcher(sql);
                 if (matcher.find())
                     sql = sql.substring(matcher.end()).trim();
             }
-            if (LAST_AND_PATTERN != null) {
+            if (suffixPattern != null) {
                 // 마지막에 AND 또는 OR 가 있으면 삭제.
-                Matcher matcher = LAST_AND_PATTERN.matcher(sql);
+                Matcher matcher = suffixPattern.matcher(sql);
                 if (matcher.find())
                     sql = sql.substring(0, matcher.start()).trim();
             }

@@ -9,7 +9,7 @@ import org.w3c.dom.NodeList;
 public class Insert extends Query {
     private final boolean useGeneratedKeys;
     private final String keyProperty;
-    private SelectKey selectKey = null;
+    private SelectKey selectKey; // TODO selectKey가 여러번 지정되면? BEFORE, AFTER 각각 지정되면?
 
     public Insert(Element element) {
         super(element);

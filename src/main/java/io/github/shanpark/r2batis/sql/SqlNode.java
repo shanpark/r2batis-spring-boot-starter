@@ -49,10 +49,12 @@ public abstract class SqlNode {
      * 최종 생성된 SQL 문을 반환한다.
      * 항상 반횐된 SQL 문은 trim 상태이어야 한다.
      *
+     * @param paramInfos 인터페이스 메소드(Method)로 전달된 Parameter 배열.
+     * @param args 인터페이스 호출 시 실제 전달된 argment의 배열.
      * @param paramMap (placeholder, value) 를 entry로 갖는 Map 객체. Ognl로 placeholder를 이용해서 값을 가져올 수 있는 Map 객체이다.
      * @param bindSet 최종적으로 bind가 필요한 placeholder들을 담아서 반환한다. 생성되는 SQL에 따라서 binding이 필요 없게 되는
      *                placeholder들이 있는데 이런 placeholder에 bind()호출하면 Runtime에 UnsupportedOperationException 이 발생한다.
      * @return 최종 생성된 SQL문. trim 상태로 반환한다.
      */
-    public abstract String generateSql(Map<String, Object> paramMap, Set<String> bindSet);
+    public abstract String generateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Object> paramMap, Set<String> bindSet);
 }

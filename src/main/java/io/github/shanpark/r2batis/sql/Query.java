@@ -35,7 +35,7 @@ public class Query {
 
         StringBuilder sb = new StringBuilder();
         for (SqlNode sqlNode : sqlNodes)
-            sb.append(sqlNode.generateSql(paramMap, bindSet)).append(" ");
+            sb.append(sqlNode.generateSql(paramInfos, args, orgArgCount, paramMap, bindSet)).append(" ");
         return sb.toString();
     }
 
