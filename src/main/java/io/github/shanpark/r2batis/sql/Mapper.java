@@ -19,7 +19,7 @@ public class Mapper {
     private final List<Delete> deleteList = new ArrayList<>();
 
     public Mapper(Element root) {
-        interfaceName = root.getAttribute("namespace");
+        interfaceName = root.getAttribute("namespace").trim();
 
         NodeList nodeList = root.getChildNodes();
         for (int inx = 0; inx < nodeList.getLength(); inx++) {

@@ -27,12 +27,12 @@ public final class Foreach extends SqlNode {
     private final List<SqlNode> sqlNodes = new ArrayList<>();
 
     public Foreach(Element element) {
-        collection = element.getAttribute("collection");
+        collection = element.getAttribute("collection").trim();
         if (collection.isBlank())
             throw new RuntimeException("The <foreach> element must include the 'collection' attribute.");
 
-        item = element.getAttribute("item");
-        index = element.getAttribute("index");
+        item = element.getAttribute("item").trim();
+        index = element.getAttribute("index").trim();
         open = element.getAttribute("open");
         close = element.getAttribute("close");
         separator = element.getAttribute("separator");

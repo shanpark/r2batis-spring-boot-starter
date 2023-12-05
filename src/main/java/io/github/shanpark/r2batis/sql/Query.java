@@ -18,8 +18,8 @@ public class Query {
     protected final List<SqlNode> sqlNodes = new ArrayList<>();
 
     public Query(Element element) {
-        id = element.getAttribute("id");
-        String resultType = element.getAttribute("resultType");
+        id = element.getAttribute("id").trim();
+        String resultType = element.getAttribute("resultType").trim();
         try {
             resultClass = !resultType.isBlank() ? Class.forName(resultType) : null;
         } catch (ClassNotFoundException e) {

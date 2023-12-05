@@ -18,8 +18,8 @@ public class Update extends Query {
     public Update(Element element) {
         super(element);
 
-        useGeneratedKeys = Boolean.parseBoolean(element.getAttribute("useGeneratedKeys"));
-        keyColumn = element.getAttribute("keyColumn");
+        useGeneratedKeys = Boolean.parseBoolean(element.getAttribute("useGeneratedKeys").trim());
+        keyColumn = element.getAttribute("keyColumn").trim();
 
         if (isUseGeneratedKeys() && (getResultClass() == null))
             throw new RuntimeException("The <insert> element that uses generatedKeys should include the 'resultType' attribute.");

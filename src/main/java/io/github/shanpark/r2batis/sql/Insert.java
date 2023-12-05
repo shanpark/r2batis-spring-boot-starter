@@ -19,8 +19,8 @@ public class Insert extends Query {
     public Insert(Element element) {
         super(element);
 
-        useGeneratedKeys = Boolean.parseBoolean(element.getAttribute("useGeneratedKeys"));
-        keyColumn = element.getAttribute("keyColumn");
+        useGeneratedKeys = Boolean.parseBoolean(element.getAttribute("useGeneratedKeys").trim());
+        keyColumn = element.getAttribute("keyColumn").trim();
 
         if (useGeneratedKeys && (keyColumn.isBlank() || getResultClass() == null))
             throw new RuntimeException("The element that uses generatedKeys should include the 'keyColumn' and 'resultType' attributes.");

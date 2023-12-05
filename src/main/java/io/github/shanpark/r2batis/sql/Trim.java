@@ -33,7 +33,7 @@ public class Trim extends SqlNode {
      * @param suffixOverrides 생성된 SQL의 끝 부분에서 삭제할 문자열. 정규식 "(?i)(~~~)$" 에서 ~~~ 부분에 들어갈 정규식이어야 한다.
      */
     public Trim(Element element, String prefix, String prefixOverrides, String suffixOverrides) {
-        this.prefix = prefix.trim();
+        this.prefix = prefix;
 
         if (prefixOverrides.isEmpty() && suffixOverrides.isEmpty())
             throw new RuntimeException("'prefixOverrides' or 'suffixOverrides' attribute should be specified for <trim>.");
