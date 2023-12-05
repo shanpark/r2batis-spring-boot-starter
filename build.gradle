@@ -23,13 +23,13 @@ publishing {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc:3.1.6'
-    implementation 'org.springframework.boot:spring-boot-autoconfigure-processor:3.1.6'
-    api 'ognl:ognl:3.3.4'
-    api 'org.apache.ant:ant:1.10.13'
+    implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc:3.2.0'
+    implementation 'org.springframework.boot:spring-boot-autoconfigure-processor:3.2.0'
+    api 'ognl:ognl:3.4.2'
+    api 'org.apache.ant:ant:1.10.14'
 
-    compileOnly 'org.projectlombok:lombok:1.18.26'
-    annotationProcessor 'org.projectlombok:lombok:1.18.26'
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
