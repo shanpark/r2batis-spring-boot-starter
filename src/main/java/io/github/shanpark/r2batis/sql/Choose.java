@@ -1,6 +1,7 @@
 package io.github.shanpark.r2batis.sql;
 
 import io.github.shanpark.r2batis.MethodImpl;
+import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -23,7 +24,7 @@ public class Choose extends SqlNode {
             if (node.getNodeType() == Node.TEXT_NODE) {
                 String content = node.getNodeValue();
                 if (!content.isBlank())
-                    throw new RuntimeException("The <choose> element can only contain <when> or <otherwise> elements.");
+                    throw new InvalidMapperElementException("The <choose> element can only contain <when> or <otherwise> elements.");
             } else if (node.getNodeType() == Node.ELEMENT_NODE) {
                 SqlNode child = SqlNode.newSqlNodeForChoose((Element) node);
                 if (child instanceof If) {
@@ -32,12 +33,12 @@ public class Choose extends SqlNode {
                     if (otherwise == null)
                         otherwise = (Otherwise) child;
                     else
-                        throw new RuntimeException("The <otherwise> element was specified twice.");
+                        throw new InvalidMapperElementException("The <otherwise> element has been specified multiple times.");
                 }
             }
         }
         if (whenNodes.isEmpty())
-            throw new RuntimeException("The <choose> element should have at least one <when> element.");
+            throw new InvalidMapperElementException("The <choose> element should have at least one <when> element.");
     }
 
     @Override

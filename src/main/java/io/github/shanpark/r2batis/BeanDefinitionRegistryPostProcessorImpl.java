@@ -188,7 +188,7 @@ public class BeanDefinitionRegistryPostProcessorImpl implements BeanDefinitionRe
                     throw new RuntimeException(String.format("There is no package[%s].", packageName)); // AutoConfigurationPackages 가 반환한 package가 존재하지 않는다는 뜻이다. 심각한 에러이므로 그냥 던진다.
                 }
             } catch (URISyntaxException e) {
-                throw new RuntimeException(e); // AutoConfigurationPackages 가 반환한 package가 존재하지 않는다는 뜻이다. 심각한 에러이므로 그냥 던진다.
+                throw new RuntimeException(e); // 심각한 에러이므로 그냥 던진다.
             }
         }
 

@@ -1,6 +1,7 @@
 package io.github.shanpark.r2batis.sql;
 
 import io.github.shanpark.r2batis.MethodImpl;
+import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
 import lombok.Getter;
 import org.w3c.dom.Element;
 
@@ -23,7 +24,7 @@ public class Query {
         try {
             resultClass = !resultType.isBlank() ? Class.forName(resultType) : null;
         } catch (ClassNotFoundException e) {
-            throw new RuntimeException(String.format("The specified resultType[%s] is invalid.", resultType), e);
+            throw new InvalidMapperElementException(String.format("The specified resultType[%s] is invalid.", resultType), e);
         }
     }
 

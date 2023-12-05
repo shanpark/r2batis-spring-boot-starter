@@ -1,5 +1,6 @@
 package io.github.shanpark.r2batis;
 
+import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
 import io.github.shanpark.r2batis.sql.*;
 import io.github.shanpark.r2batis.util.ReflectionUtils;
 import io.github.shanpark.r2batis.util.TypeUtils;
@@ -102,7 +103,7 @@ public class MethodImpl {
                     spec = spec.bind(placeholder, TypeUtils.convertForParam(param));
             }
         } catch (OgnlException e) {
-            throw new RuntimeException(e);
+            throw new InvalidMapperElementException(e);
         }
 
         return spec.fetch()
@@ -112,7 +113,7 @@ public class MethodImpl {
                     if (!selectKey.getKeyColumn().isBlank()) {
                         selectedValue = resultMap.get(selectKey.getKeyColumn());
                         if (selectedValue == null)
-                            throw new RuntimeException("The 'keyColumn' attribute used in the <selectKey> element is not valid.");
+                            throw new InvalidMapperElementException("The 'keyColumn' attribute used in the <selectKey> element is not valid.");
                     } else {
                         selectedValue = resultMap.values().iterator().next();
                     }
@@ -127,7 +128,7 @@ public class MethodImpl {
                                     ReflectionUtils.findArgument(fields[0], paramInfos, args, orgArgCount), selectedValue);
                         }
                     } catch (OgnlException e) {
-                        throw new RuntimeException("The 'keyProperty' expression used in the <selectKey> element is not valid.", e);
+                        throw new InvalidMapperElementException("The 'keyProperty' expression used in the <selectKey> element is not valid.", e);
                     }
                 });
     }
@@ -150,7 +151,7 @@ public class MethodImpl {
                     spec = spec.bind(placeholder, TypeUtils.convertForParam(param));
             }
         } catch (OgnlException e) {
-            throw new RuntimeException(e);
+            throw new InvalidMapperElementException(e);
         }
 
         // useGeneratedKeys 속성은 multi insert, update를 하는 경우 반환값을 받기 위함이다.
@@ -158,28 +159,24 @@ public class MethodImpl {
         // - MySql의 경우 23년 현재 하나만 받을 수 있다
         // - MariaDB의 경우에도 10.5.1 이전 버전은 1개만 받을 수 있다. 이 후 버전은 테스트 하지 못한 상태이다.
         // 따라서 여러 건을 insert, update 하는 경우 generated pk 값을 가져오는 건 현재 안된다고 봐야한다.
-        try {
-            if (query instanceof Insert insert) { // insert
-                if (insert.isGenerateKeys()) {
-                    spec = spec.filter(s -> s.returnGeneratedValues(insert.getKeyColumn())); // 결과로 생성된 값이 나오도록 하는 filter를 적용한다.
-                    return fetchByReturnType(spec, method, query); // useGeneratedKeys가 지정되면 생성된 키값이 반환된다. updatedRows() 값은 포기해야 한다. R2DBC는 둘 중 하나만 선택가능하다.
-                } else {
-                    return fetchRowsUpdated(spec, query);
-                }
-            } else if (query instanceof Update update) { // update
-                if (update.isGenerateKeys()) {
-                    spec = spec.filter(s -> s.returnGeneratedValues(update.getKeyColumn())); // 결과로 생성된 값이 나오도록 하는 filter를 적용한다.
-                    return fetchByReturnType(spec, method, query); // useGeneratedKeys가 지정되면 생성된 키값이 반환된다. updatedRows() 값은 포기해야 한다. R2DBC는 둘 중 하나만 선택가능하다.
-                } else {
-                    return fetchRowsUpdated(spec, query);
-                }
-            } else if (query instanceof Select) { // select
-                return fetchByReturnType(spec, method, query);
-            } else { // delete
+        if (query instanceof Insert insert) { // insert
+            if (insert.isGenerateKeys()) {
+                spec = spec.filter(s -> s.returnGeneratedValues(insert.getKeyColumn())); // 결과로 생성된 값이 나오도록 하는 filter를 적용한다.
+                return fetchByReturnType(spec, method, query); // useGeneratedKeys가 지정되면 생성된 키값이 반환된다. updatedRows() 값은 포기해야 한다. R2DBC는 둘 중 하나만 선택가능하다.
+            } else {
                 return fetchRowsUpdated(spec, query);
             }
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
+        } else if (query instanceof Update update) { // update
+            if (update.isGenerateKeys()) {
+                spec = spec.filter(s -> s.returnGeneratedValues(update.getKeyColumn())); // 결과로 생성된 값이 나오도록 하는 filter를 적용한다.
+                return fetchByReturnType(spec, method, query); // useGeneratedKeys가 지정되면 생성된 키값이 반환된다. updatedRows() 값은 포기해야 한다. R2DBC는 둘 중 하나만 선택가능하다.
+            } else {
+                return fetchRowsUpdated(spec, query);
+            }
+        } else if (query instanceof Select) { // select
+            return fetchByReturnType(spec, method, query);
+        } else { // delete
+            return fetchRowsUpdated(spec, query);
         }
     }
 
@@ -204,7 +201,7 @@ public class MethodImpl {
      * @param query XML 맵퍼에서 생성된 SQL Query 객체.
      * @return SQL을 수행하고 값을 발행할 Publisher 객체. (Mono 또는 Flux)
      */
-    private Publisher<?> fetchByReturnType(DatabaseClient.GenericExecuteSpec spec, Method method, Query query) throws ClassNotFoundException {
+    private Publisher<?> fetchByReturnType(DatabaseClient.GenericExecuteSpec spec, Method method, Query query) {
         if (Flux.class.isAssignableFrom(method.getReturnType())) {
             return spec.fetch()
                     .all()

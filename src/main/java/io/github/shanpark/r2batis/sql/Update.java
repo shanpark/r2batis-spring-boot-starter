@@ -1,5 +1,6 @@
 package io.github.shanpark.r2batis.sql;
 
+import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
 import lombok.Getter;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -22,7 +23,7 @@ public class Update extends Query {
         keyColumn = element.getAttribute("keyColumn").trim();
 
         if (isUseGeneratedKeys() && (getResultClass() == null))
-            throw new RuntimeException("The <insert> element that uses generatedKeys should include the 'resultType' attribute.");
+            throw new InvalidMapperElementException("The <insert> element that uses generatedKeys should include the 'resultType' attribute.");
 
         NodeList nodeList = element.getChildNodes();
         for (int inx = 0; inx < nodeList.getLength(); inx++) {

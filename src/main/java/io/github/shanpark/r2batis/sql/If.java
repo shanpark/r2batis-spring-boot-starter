@@ -1,6 +1,7 @@
 package io.github.shanpark.r2batis.sql;
 
 import io.github.shanpark.r2batis.MethodImpl;
+import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
 import ognl.Ognl;
 import ognl.OgnlException;
 import org.w3c.dom.Element;
@@ -53,7 +54,7 @@ public final class If extends SqlNode {
                 return "";
             }
         } catch (OgnlException e) {
-            throw new RuntimeException(e);
+            throw new InvalidMapperElementException("The 'test' expression provided is invalid.", e);
         }
     }
 }

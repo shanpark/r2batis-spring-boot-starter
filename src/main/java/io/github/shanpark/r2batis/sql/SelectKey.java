@@ -1,5 +1,6 @@
 package io.github.shanpark.r2batis.sql;
 
+import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
 import lombok.Getter;
 import org.w3c.dom.Element;
 
@@ -14,10 +15,10 @@ public class SelectKey extends Select {
 
         keyProperty = element.getAttribute("keyProperty").trim();
         if (keyProperty.isBlank())
-            throw new RuntimeException("The <selectKey> element must include the 'keyProperty' attribute.");
+            throw new InvalidMapperElementException("The <selectKey> element must include the 'keyProperty' attribute.");
         keyColumn = element.getAttribute("keyColumn").trim();
         order = element.getAttribute("order").trim();
         if (!order.equalsIgnoreCase("before") && !order.equalsIgnoreCase("after"))
-            throw new RuntimeException("The 'order' attribute of the <selectKey> element can have two values: 'BEFORE' or 'AFTER'.");
+            throw new InvalidMapperElementException("The 'order' attribute of the <selectKey> element can have two values: 'BEFORE' or 'AFTER'.");
     }
 }

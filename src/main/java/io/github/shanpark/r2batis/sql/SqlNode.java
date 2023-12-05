@@ -1,6 +1,7 @@
 package io.github.shanpark.r2batis.sql;
 
 import io.github.shanpark.r2batis.MethodImpl;
+import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
 import org.w3c.dom.Element;
 
 import java.util.Map;
@@ -22,7 +23,7 @@ public abstract class SqlNode {
             case "where" -> new Trim(element, "WHERE", "AND |OR ", ""); // AND, OR 뒤에 따라오는 공백문자 유지해야 함.
             case "set" -> new Trim(element, "SET", "", ",");
             case "choose" -> new Choose(element);
-            default -> throw new RuntimeException("An invalid element was found. [" + nodeName + "]");
+            default -> throw new InvalidMapperElementException("An invalid element was found. [" + nodeName + "]");
         };
     }
 
@@ -31,7 +32,7 @@ public abstract class SqlNode {
         return switch (nodeName) {
             case "when" -> new If(element);
             case "otherwise" -> new Otherwise(element);
-            default -> throw new RuntimeException("An invalid element was found. [" + nodeName + "]");
+            default -> throw new InvalidMapperElementException("An invalid element was found. [" + nodeName + "]");
         };
     }
 

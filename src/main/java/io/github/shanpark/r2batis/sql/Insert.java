@@ -1,5 +1,6 @@
 package io.github.shanpark.r2batis.sql;
 
+import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
 import lombok.Getter;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -23,7 +24,7 @@ public class Insert extends Query {
         keyColumn = element.getAttribute("keyColumn").trim();
 
         if (useGeneratedKeys && (keyColumn.isBlank() || getResultClass() == null))
-            throw new RuntimeException("The element that uses generatedKeys should include the 'keyColumn' and 'resultType' attributes.");
+            throw new InvalidMapperElementException("The element that uses generatedKeys should include the 'keyColumn' and 'resultType' attributes.");
 
         NodeList nodeList = element.getChildNodes();
         for (int inx = 0; inx < nodeList.getLength(); inx++) {
@@ -38,7 +39,7 @@ public class Insert extends Query {
                     if (selectKey == null)
                         selectKey = new SelectKey((Element) node); // selectKey는 한 개만 가능.
                     else
-                        throw new RuntimeException("The <selectKey> element should only be used once within an <insert> element.");
+                        throw new InvalidMapperElementException("The <selectKey> element should only be used once within an <insert> element."); // TODO 아닐수도...
                 } else {
                     sqlNodes.add(SqlNode.newSqlNode((Element) node));
                 }

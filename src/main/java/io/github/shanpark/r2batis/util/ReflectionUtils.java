@@ -1,10 +1,12 @@
 package io.github.shanpark.r2batis.util;
 
 import io.github.shanpark.r2batis.MethodImpl;
+import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
 import ognl.Ognl;
 import ognl.OgnlException;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
 
@@ -29,8 +31,9 @@ public class ReflectionUtils {
                     setFieldValue(obj, entry.getKey(), entry.getValue());
                 return obj;
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException |
+                 NoSuchFieldException e) {
+            throw new InvalidMapperElementException(e);
         }
     }
 
@@ -68,7 +71,7 @@ public class ReflectionUtils {
                 }
             }
             // 여기까지 왔으면 맞는 parameter가 없다는 뜻이다. 인터페이스 선언이나 xml mapper 선언에서 이름이 틀린 것이다.
-            throw new RuntimeException(String.format("Can't bind ':%s' parameter.", String.join(".", fields)));
+            throw new InvalidMapperElementException(String.format("Can't bind ':%s' parameter.", String.join(".", fields)));
         }
     }
 
@@ -79,16 +82,14 @@ public class ReflectionUtils {
      * @return 찾아진 field의 값과 그 값의 Class 객체를 담은 tuple. 값이 null이 더라도 Class 객체는 유효하다.
      */
     public static Class<?> getFieldType(Class<?> clazz, String[] fields, int fromIndex) {
-        if (fields.length < fromIndex) {
-            throw new RuntimeException("Some critical error found.");
-        } else if (fields.length == fromIndex) {
+        if (fields.length == fromIndex) {
             return clazz;
-        } else {
+        } else { // if (fields.length > fromIndex)
             try {
                 Method getter = getGetterMethod(clazz, fields[fromIndex]);
                 return getFieldType(getter.getReturnType(), fields, fromIndex + 1);
             } catch (NoSuchMethodException e) {
-                throw new RuntimeException(String.format("'%s' field of '%s' not found", fields[fromIndex], String.join(".", fields)), e);
+                throw new InvalidMapperElementException(String.format("'%s' field of '%s' not found", fields[fromIndex], String.join(".", fields)), e);
             }
         }
     }
@@ -126,12 +127,12 @@ public class ReflectionUtils {
                     try {
                         return Ognl.getValue(name, arguments[0]);
                     } catch (OgnlException e) {
-                        throw new RuntimeException(String.format("Can't bind ':%s' parameter.", name), e);
+                        throw new InvalidMapperElementException(String.format("Can't bind ':%s' parameter.", name), e);
                     }
                 }
             }
             // 여기까지 왔으면 맞는 parameter가 없다는 뜻이다. 인터페이스 선언이나 xml mapper 선언에서 이름이 틀린 것이다.
-            throw new RuntimeException(String.format("Can't bind ':%s' parameter.", name));
+            throw new InvalidMapperElementException(String.format("Can't bind ':%s' parameter.", name));
         }
     }
 }

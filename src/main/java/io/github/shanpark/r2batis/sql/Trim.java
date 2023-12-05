@@ -1,6 +1,7 @@
 package io.github.shanpark.r2batis.sql;
 
 import io.github.shanpark.r2batis.MethodImpl;
+import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -36,7 +37,7 @@ public class Trim extends SqlNode {
         this.prefix = prefix;
 
         if (prefixOverrides.isEmpty() && suffixOverrides.isEmpty())
-            throw new RuntimeException("'prefixOverrides' or 'suffixOverrides' attribute should be specified for <trim>.");
+            throw new InvalidMapperElementException("'prefixOverrides' or 'suffixOverrides' attribute should be specified for <trim>.");
 
         prefixPattern = prefixOverrides.isBlank() ? null : Pattern.compile("(?i)^(" + prefixOverrides + ")");
         suffixPattern = suffixOverrides.isBlank() ? null : Pattern.compile("(?i)(" + suffixOverrides + ")$");

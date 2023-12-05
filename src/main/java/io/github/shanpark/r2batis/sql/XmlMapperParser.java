@@ -1,5 +1,6 @@
 package io.github.shanpark.r2batis.sql;
 
+import io.github.shanpark.r2batis.exception.MapperParsingException;
 import lombok.extern.slf4j.Slf4j;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -28,7 +29,7 @@ public class XmlMapperParser {
 
             return new Mapper(root);
         } catch (ParserConfigurationException | IOException | SAXException e) {
-            throw new RuntimeException(e);
+            throw new MapperParsingException(e);
         }
     }
 }

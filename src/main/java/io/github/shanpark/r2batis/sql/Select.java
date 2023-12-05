@@ -1,5 +1,6 @@
 package io.github.shanpark.r2batis.sql;
 
+import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -9,7 +10,7 @@ public class Select extends Query {
         super(element);
 
         if (getResultClass() == null)
-            throw new RuntimeException("The <select>, <selectKey> element should include the 'resultType' attribute.");
+            throw new InvalidMapperElementException("The <select>, <selectKey> element should include the 'resultType' attribute.");
 
         NodeList nodeList = element.getChildNodes();
         for (int inx = 0; inx < nodeList.getLength(); inx++) {

@@ -1,9 +1,11 @@
 package io.github.shanpark.r2batis.sql;
 
 import io.github.shanpark.r2batis.MethodImpl;
+import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
 import io.github.shanpark.r2batis.util.ReflectionUtils;
 import lombok.Getter;
 import ognl.Ognl;
+import ognl.OgnlException;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -29,7 +31,7 @@ public final class Foreach extends SqlNode {
     public Foreach(Element element) {
         collection = element.getAttribute("collection").trim();
         if (collection.isBlank())
-            throw new RuntimeException("The <foreach> element must include the 'collection' attribute.");
+            throw new InvalidMapperElementException("The <foreach> element must include the 'collection' attribute.");
 
         item = element.getAttribute("item").trim();
         index = element.getAttribute("index").trim();
@@ -63,8 +65,8 @@ public final class Foreach extends SqlNode {
                 collectionParam = (Collection<?>) ReflectionUtils.findArgument(collection.trim(), paramInfos, args, orgArgCount); // 가져온 값은 반드시 Collection 이어야 한다. 아니면 ClassCaseException이 발생하겠지.
             else
                 collectionParam = (Collection<?>) Ognl.getValue(collection.substring(collection.indexOf('.') + 1), ReflectionUtils.findArgument(fields[0], paramInfos, args, orgArgCount));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        } catch (OgnlException e) {
+            throw new InvalidMapperElementException(e);
         }
 
         if (!collectionParam.isEmpty()) {
@@ -125,8 +127,6 @@ public final class Foreach extends SqlNode {
 
                 inx++;
             }
-        } else {
-            throw new RuntimeException("Can't find the argument specified by the 'collection' parameter.");
         }
     }
 
@@ -141,8 +141,8 @@ public final class Foreach extends SqlNode {
                 collectionParam = (Collection<?>) ReflectionUtils.findArgument(collection.trim(), paramInfos, args, orgArgCount); // 가져온 값은 반드시 Collection 이어야 한다. 아니면 ClassCaseException이 발생하겠지.
             else
                 collectionParam = (Collection<?>) Ognl.getValue(collection.substring(collection.indexOf('.') + 1), ReflectionUtils.findArgument(fields[0], paramInfos, args, orgArgCount));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        } catch (OgnlException e) {
+            throw new InvalidMapperElementException(e);
         }
 
         if (!collectionParam.isEmpty()) {

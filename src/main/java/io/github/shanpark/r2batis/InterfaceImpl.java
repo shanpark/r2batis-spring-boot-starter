@@ -1,5 +1,6 @@
 package io.github.shanpark.r2batis;
 
+import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
 import lombok.Data;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.r2dbc.core.DatabaseClient;
@@ -45,6 +46,6 @@ public class InterfaceImpl {
         if (methodImpl != null)
             return methodImpl.invoke(databaseClient, transactionalOperator, method, args);
         else
-            throw new RuntimeException("There is no valid method with name [" + method.getName() + "]. Verify the method name or 'id' in the mapper XML");
+            throw new InvalidMapperElementException("There is no valid method with name [" + method.getName() + "]. Verify the method name or 'id' in the mapper XML");
     }
 }
