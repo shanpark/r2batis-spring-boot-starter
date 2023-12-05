@@ -1,9 +1,6 @@
 package io.github.shanpark.r2batis;
 
-import io.github.shanpark.r2batis.sql.Insert;
-import io.github.shanpark.r2batis.sql.Query;
-import io.github.shanpark.r2batis.sql.Select;
-import io.github.shanpark.r2batis.sql.SelectKey;
+import io.github.shanpark.r2batis.sql.*;
 import io.github.shanpark.r2batis.util.ReflectionUtils;
 import io.github.shanpark.r2batis.util.TypeUtils;
 import lombok.AllArgsConstructor;
@@ -156,20 +153,29 @@ public class MethodImpl {
             throw new RuntimeException(e);
         }
 
+        // useGeneratedKeys 속성은 multi insert, update를 하는 경우 반환값을 받기 위함이다.
+        // 하지만 현재는 제대로 지원되지 않고 있다.
+        // - MySql의 경우 23년 현재 하나만 받을 수 있다
+        // - MariaDB의 경우에도 10.5.1 이전 버전은 1개만 받을 수 있다. 이 후 버전은 테스트 하지 못한 상태이다.
+        // 따라서 여러 건을 insert, update 하는 경우 generated pk 값을 가져오는 건 현재 안된다고 봐야한다.
         try {
             if (query instanceof Insert insert) { // insert
                 if (insert.isGenerateKeys()) {
-                    // 결과가 생성된 PK가 나오도록 하는 filter를 적용한다.
-                    //   Multi Insert의 경우 MariaDB는 10.5.1 부터 적용된다고 한다. MySQL은 맨 처음 생성된 ID 하나만 반환된다.
-                    //   따라서 여러 건을 insert하는 경우 generated pk 값을 가져오는 건 현재 안된다고 봐야한다.
-                    spec = spec.filter(s -> s.returnGeneratedValues(((Insert) query).getKeyProperty()));
-                    return fetchByReturnType(spec, method, insert);
+                    spec = spec.filter(s -> s.returnGeneratedValues(insert.getKeyColumn())); // 결과로 생성된 값이 나오도록 하는 filter를 적용한다.
+                    return fetchByReturnType(spec, method, query); // useGeneratedKeys가 지정되면 생성된 키값이 반환된다. updatedRows() 값은 포기해야 한다. R2DBC는 둘 중 하나만 선택가능하다.
+                } else {
+                    return fetchRowsUpdated(spec, query);
+                }
+            } else if (query instanceof Update update) { // update
+                if (update.isGenerateKeys()) {
+                    spec = spec.filter(s -> s.returnGeneratedValues(update.getKeyColumn())); // 결과로 생성된 값이 나오도록 하는 filter를 적용한다.
+                    return fetchByReturnType(spec, method, query); // useGeneratedKeys가 지정되면 생성된 키값이 반환된다. updatedRows() 값은 포기해야 한다. R2DBC는 둘 중 하나만 선택가능하다.
                 } else {
                     return fetchRowsUpdated(spec, query);
                 }
             } else if (query instanceof Select) { // select
                 return fetchByReturnType(spec, method, query);
-            } else { // update, delete
+            } else { // delete
                 return fetchRowsUpdated(spec, query);
             }
         } catch (ClassNotFoundException e) {
@@ -220,10 +226,11 @@ public class MethodImpl {
      * @return SQL을 수행하고 영향 받은 행의 갯수 발행할 Publisher 객체.
      */
     private Mono<?> fetchRowsUpdated(DatabaseClient.GenericExecuteSpec spec, Query query) {
-        if ((query.getResultClass() != null) && !query.getResultClass().equals(Long.class)) // rowsUpdated()는 Mono<Long> 반환
+        if ((query.getResultClass() != null) && !query.getResultClass().equals(Long.class)) { // rowsUpdated()는 Mono<Long> 반환
             return spec.fetch()
                     .rowsUpdated()
                     .map(count -> TypeUtils.convert(count, query.getResultClass()));
+        }
         else
             return spec.fetch()
                     .rowsUpdated();

@@ -150,11 +150,11 @@ public final class Foreach extends SqlNode {
             StringBuilder tempSb = new StringBuilder();
 
             int inx = 0;
+            Object prevItem = null; // item, index 필드값이 변경되지 않기 때문에 loop 바깥에 있어도 상관없음.
+            Object prevIndex = null;
             for (Object element : collectionParam) {
                 // for loop 안에서 참조하는 item, index 값들을 마치 param에 전달된 것처럼 만들어서 넣어준다. <if>의 test 조건같은
                 // 곳에서 사용될 수 있기 때문에 만들어서 넣어줘야 한다.
-                Object prevItem = null;
-                Object prevIndex = null;
                 if (!item.isBlank())
                     prevItem = paramMap.putIfAbsent(item, element); // collection의 원소를 item 이름으로 넣어준다.
                 if (!index.isBlank())
@@ -166,8 +166,8 @@ public final class Foreach extends SqlNode {
                     String sql = sqlNode.generateSql(paramInfos, args, orgArgCount, paramMap, tempBindSet); // generateSql()은 trim을 해서 보내므로 따로 trim()은 필요없다.
                     if (!sql.isBlank()) {
                         if (!sb.isEmpty())
-                            tempSb.append(sql).append(separator);
-
+                            tempSb.append(separator);
+                        tempSb.append(sql);
                         for (String key : tempBindSet) {
                             String newItemName = getNewItemName(inx); // collectionItem의 새 이름이다.
                             String newIndexName = getNewIndexName(inx); // index의 새 이름이다.

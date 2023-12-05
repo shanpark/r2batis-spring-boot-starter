@@ -69,7 +69,7 @@ public class Trim extends SqlNode {
 
         String sql = sb.toString().trim();
         if (sql.isBlank()) {
-            return prefix; // 아무런 sql이 생성되지 않았더라도 prefix는 생성해야 한다. // TODO MyBatis의 <where>의 동작을 보면 아닌 듯하다. 아무것도 없으면 prefix도 없어야 맞는듯..
+            return ""; // 아무런 sql이 생성되지 않았으면 prefix도 붙지 않는다.
         } else {
             // 시작에 AND 또는 OR 가 있으면 삭제.
             if (prefixPattern != null) {
