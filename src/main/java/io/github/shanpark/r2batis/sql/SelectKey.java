@@ -5,7 +5,7 @@ import lombok.Getter;
 import org.w3c.dom.Element;
 
 @Getter
-public class SelectKey extends Select {
+public final class SelectKey extends Select {
     private final String keyProperty; // Required.
     private final String keyColumn; // Optional. 하나만 지정 가능. (!!! MyBatis와 다름)
     private final String order; // Required. "BEFORE" or "AFTER"

@@ -8,10 +8,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public final class If extends SqlNode {
 
@@ -38,6 +35,7 @@ public final class If extends SqlNode {
 
     @Override
     public void evaluateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Class<?>> placeholderMap, Map<String, Object> paramMap) {
+        // TODO 여기서 이미 test를 수행하면 아래 모두 평가하지 않아도 되는데?? 그럴려면 평가된 값을 parameter로 전달해야 한다.
         for (SqlNode sqlNode : sqlNodes)
             sqlNode.evaluateSql(paramInfos, args, orgArgCount, placeholderMap, paramMap);
     }

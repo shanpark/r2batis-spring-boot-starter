@@ -6,12 +6,9 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-public class Choose extends SqlNode {
+public final class Choose extends SqlNode {
 
     private final List<If> whenNodes = new ArrayList<>(); // <when>은 <if> 모양, 기능이 같다. 단지 <choose> 내에서만 의미가 있을 뿐이다.
     private Otherwise otherwise;

@@ -6,13 +6,10 @@ import org.w3c.dom.Element;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class SqlNode {
-    protected static long uid = 0;
-
-    protected SqlNode() {
-        uid++;
-    }
+    protected static final AtomicLong uid = new AtomicLong(0L);
 
     public static SqlNode newSqlNode(Element element) {
         String nodeName = element.getNodeName();
@@ -39,10 +36,11 @@ public abstract class SqlNode {
     /**
      * placeholder와 그에 해당하는 value, type 을 뽑아서 map에 담아준다.
      *
-     * @param paramInfos 인터페이스 메소드(Method)로 전달된 Parameter 배열.
+     * @param paramInfos 인터페이스 메소드(Method)로 전달된 Parameter 정보의 배열. MethodImpl.ParamInfo 객체들의 배열이다.
      * @param args 인터페이스 호출 시 실제 전달된 argment의 배열.
      * @param placeholderMap 생성된 sql에서 뽑힌 placeholder와 그 타입을 담을 Map 객체.
-     * @param paramMap 생성된 sql에서 뽑힌 placeholder와 실제 이 placeholder를 이용해서 Ognl로 값을 뽑아낼 수 있도록 생성할 Map 객체.
+     * @param paramMap 생성된 sql에서 뽑힌 placeholder와 실제 이 placeholder를 이용해서 Ognl로 값을 뽑아낼 수 있도록 필요한 값들을 저장할 Map 객체.
+     *                 ognl로 뽑아낼 수 있도록 placeholder가 "obj.field" 인 경우 paramMap 에는 "obj" 키 값에 객체가 들어가 있다.
      */
     public abstract void evaluateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Class<?>> placeholderMap, Map<String, Object> paramMap);
 

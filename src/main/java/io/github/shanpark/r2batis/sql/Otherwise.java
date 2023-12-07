@@ -5,15 +5,12 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * HTML에서 <div> 처럼 SQL 구문들을 그저 block으로 묶어주는 역할말고는 없다.
  */
-public class Otherwise extends SqlNode {
+public final class Otherwise extends SqlNode {
 
     private final List<SqlNode> sqlNodes = new ArrayList<>();
 

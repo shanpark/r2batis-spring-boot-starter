@@ -41,7 +41,8 @@ public class Query {
     }
 
     /**
-     * 메소드로 전달된 arguments들을 paramMap에 넣어서 초기화한다.
+     * 메소드로 전달된 argument들을 paramMap에 넣어서 초기화한다.
+     * 기본적으로 메소드로 전달된 argument들은 이름 그대로 paramMap에 들어가 있어야 한다.
      *
      * @param paramMap (parameter 이름, argument) 를 entry로 갖는 Map 객체
      * @param paramInfos 메소드의 parameter 정보를 갖는 배열.

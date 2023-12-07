@@ -11,6 +11,10 @@ repositories {
     mavenCentral()
 }
 
+tasks.register('sourceJar', Jar) {
+    from sourceSets.main.allJava
+}
+
 publishing {
     publications {
         maven(MavenPublication) {
@@ -18,6 +22,10 @@ publishing {
             artifactId = 'r2batis-spring-boot-starter'
             version = '0.1.1'
             from components.java
+
+            artifact sourceJar {
+                classifier "sources"
+            }
         }
     }
 }

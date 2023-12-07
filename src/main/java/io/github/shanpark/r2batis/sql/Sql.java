@@ -3,9 +3,7 @@ package io.github.shanpark.r2batis.sql;
 import io.github.shanpark.r2batis.MethodImpl;
 import io.github.shanpark.r2batis.util.ReflectionUtils;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public final class Sql extends SqlNode {
@@ -28,6 +26,7 @@ public final class Sql extends SqlNode {
                     String[] fields = placeholder.split("\\.");
                     Class<?> type = ReflectionUtils.getFieldsType(fields, paramInfos, orgArgCount);
                     placeholderMap.put(placeholder, type);
+
                     paramMap.put(fields[0], ReflectionUtils.findArgument(fields[0], paramInfos, args, orgArgCount));
                 }
             }
@@ -40,7 +39,7 @@ public final class Sql extends SqlNode {
         return sql;
     }
 
-    synchronized private Set<String> getPlaceholderSet() {
+    private Set<String> getPlaceholderSet() {
         if (placeholderSet == null) { // 한 번 정해지면 바뀔 일이 없으므로 캐슁하는게 맞다.
             synchronized (this) {
                 if (placeholderSet == null) {

@@ -6,14 +6,11 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Trim extends SqlNode {
+public final class Trim extends SqlNode {
 
     private final String prefix;
     private final Pattern prefixPattern;
