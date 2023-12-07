@@ -203,15 +203,15 @@ public final class Foreach extends SqlNode {
                     sql = expandLocalPlaceholder(sql, item, getNewItemName(inx));
                 if (!index.isBlank())
                     sql = expandLocalPlaceholder(sql, index, getNewIndexName(inx));
-                sb.append(sql);
+                sb.append(sql.trim());
 
                 tempSb.setLength(0);
                 inx++;
             }
 
-            return ((!open.isBlank() ? open + " " : "") +
+            return ((open.isBlank() ? "" : open + " ") +
                     sb +
-                    (!close.isBlank() ? " " + close : "")).trim();
+                    (close.isBlank() ? "" : " " + close)).trim();
         } else {
             return "";
         }
