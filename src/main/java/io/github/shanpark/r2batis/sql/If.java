@@ -1,6 +1,5 @@
 package io.github.shanpark.r2batis.sql;
 
-import io.github.shanpark.r2batis.MethodImpl;
 import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
 import ognl.Ognl;
 import ognl.OgnlException;
@@ -8,7 +7,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class If extends SqlNode {
 
@@ -34,19 +34,12 @@ public final class If extends SqlNode {
     }
 
     @Override
-    public void evaluateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Class<?>> placeholderMap, Map<String, Object> paramMap) {
-        // TODO 여기서 이미 test를 수행하면 아래 모두 평가하지 않아도 되는데?? 그럴려면 평가된 값을 parameter로 전달해야 한다.
-        for (SqlNode sqlNode : sqlNodes)
-            sqlNode.evaluateSql(paramInfos, args, orgArgCount, placeholderMap, paramMap);
-    }
-
-    @Override
-    public String generateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Object> paramMap, Set<String> bindSet) {
+    public String generateSql(MapperContext mapperContext) {
         try {
-            if ((Boolean) Ognl.getValue(test, paramMap)) { // test 조건 검사
+            if ((Boolean) Ognl.getValue(test, mapperContext.getParamMap())) { // test 조건 검사
                 StringBuilder sb = new StringBuilder();
                 for (SqlNode sqlNode : sqlNodes)
-                    sb.append(sqlNode.generateSql(paramInfos, args, orgArgCount, paramMap, bindSet)).append(" "); // 반드시 공백 붙여야 함.
+                    sb.append(sqlNode.generateSql(mapperContext)).append(" "); // 하위 노드가 생성한 sql뒤에 항상 공백을 붙인다.
                 return sb.toString().trim(); // 마지막엔 항상 trim()
             } else {
                 return "";

@@ -1,12 +1,12 @@
 package io.github.shanpark.r2batis.sql;
 
-import io.github.shanpark.r2batis.MethodImpl;
 import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class Choose extends SqlNode {
 
@@ -39,24 +39,15 @@ public final class Choose extends SqlNode {
     }
 
     @Override
-    public void evaluateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Class<?>> placeholderMap, Map<String, Object> paramMap) {
-        for (SqlNode sqlNode : whenNodes)
-            sqlNode.evaluateSql(paramInfos, args, orgArgCount, placeholderMap, paramMap);
-
-        if (otherwise != null)
-            otherwise.evaluateSql(paramInfos, args, orgArgCount, placeholderMap, paramMap);
-    }
-
-    @Override
-    public String generateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Object> paramMap, Set<String> bindSet) {
+    public String generateSql(MapperContext mapperContext) {
         for (If sqlNode : whenNodes) {
-            String sql = sqlNode.generateSql(paramInfos, args, orgArgCount, paramMap, bindSet);
-            if (!sql.isBlank())
+            String sql = sqlNode.generateSql(mapperContext);
+            if (!sql.isBlank()) // 생성된 sql이 있으면 바로 반환하고 더 이상 처리를 할 필요가 없다.
                 return sql.trim();
         }
 
         if (otherwise != null)
-            return otherwise.generateSql(paramInfos, args, orgArgCount, paramMap, bindSet);
+            return otherwise.generateSql(mapperContext);
 
         return "";
     }

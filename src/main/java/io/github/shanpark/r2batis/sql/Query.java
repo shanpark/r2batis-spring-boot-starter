@@ -28,15 +28,10 @@ public class Query {
         }
     }
 
-    public String generateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Class<?>> placeholderMap, Map<String, Object> paramMap, Set<String> bindSet) {
-        initParamMap(paramMap, paramInfos, args); // test 조건 같은 곳에서 사용되는 것들이 placeholder로 검출되지 않기 떄문에 최초에 기본적으로 모든 argument는 paramMap에 자기 이름을 키값으로 들어가야 맞다.
-
-        for (SqlNode sqlNode : sqlNodes)
-            sqlNode.evaluateSql(paramInfos, args, orgArgCount, placeholderMap, paramMap);
-
+    public String generateSql(MapperContext mapperContext) {
         StringBuilder sb = new StringBuilder();
         for (SqlNode sqlNode : sqlNodes)
-            sb.append(sqlNode.generateSql(paramInfos, args, orgArgCount, paramMap, bindSet)).append(" ");
+            sb.append(sqlNode.generateSql(mapperContext)).append(" ");
         return sb.toString();
     }
 
@@ -48,8 +43,8 @@ public class Query {
      * @param paramInfos 메소드의 parameter 정보를 갖는 배열.
      * @param args 실제 메소드 호출 시에 전달된 arguments.
      */
-    static void initParamMap(Map<String, Object> paramMap, MethodImpl.ParamInfo[] paramInfos, Object[] args) {
-        for (int inx = 0; inx < paramInfos.length; inx++)
-            paramMap.put(paramInfos[inx].getName(), args[inx]);
-    }
+//    static void initParamMap(Map<String, Object> paramMap, MethodImpl.ParamInfo[] paramInfos, Object[] args) {
+//        for (int inx = 0; inx < paramInfos.length; inx++)
+//            paramMap.put(paramInfos[inx].getName(), args[inx]);
+//    }
 }

@@ -1,11 +1,11 @@
 package io.github.shanpark.r2batis.sql;
 
-import io.github.shanpark.r2batis.MethodImpl;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * HTML에서 <div> 처럼 SQL 구문들을 그저 block으로 묶어주는 역할말고는 없다.
@@ -30,16 +30,10 @@ public final class Otherwise extends SqlNode {
     }
 
     @Override
-    public void evaluateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Class<?>> placeholderMap, Map<String, Object> paramMap) {
-        for (SqlNode sqlNode : sqlNodes)
-            sqlNode.evaluateSql(paramInfos, args, orgArgCount, placeholderMap, paramMap);
-    }
-
-    @Override
-    public String generateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Object> paramMap, Set<String> bindSet) {
+    public String generateSql(MapperContext mapperContext) {
         StringBuilder sb = new StringBuilder();
         for (SqlNode sqlNode : sqlNodes)
-            sb.append(sqlNode.generateSql(paramInfos, args, orgArgCount, paramMap, bindSet)).append(" "); // 반드시 공백 붙여야 함.
+            sb.append(sqlNode.generateSql(mapperContext)).append(" "); // 하위 노드가 생성한 sql뒤에 항상 공백을 붙인다.
         return sb.toString().trim(); // 마지막엔 항상 trim()
     }
 }

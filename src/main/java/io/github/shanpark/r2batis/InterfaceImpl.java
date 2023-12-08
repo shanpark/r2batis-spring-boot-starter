@@ -28,6 +28,13 @@ public class InterfaceImpl {
         methodMap.put(methodImpl.getName(), methodImpl);
     }
 
+    /**
+     *
+     * @param beanFactory spring에서 제공하는 bean factory 객체.
+     * @param method 호출된 메소드에 대한 정보 객체.
+     * @param args 실제 메소드 호출 시 전달된 argument 들의 배열. 메소드의 parameter가 없는 경우 null이 전달.
+     * @return 호출된 메서드가 반환한 값.
+     */
     public Object invoke(ConfigurableListableBeanFactory beanFactory, Method method, Object[] args) {
         if (databaseClient == null) {
             synchronized (this) {

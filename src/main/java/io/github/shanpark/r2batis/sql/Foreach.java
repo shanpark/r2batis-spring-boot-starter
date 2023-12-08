@@ -1,16 +1,14 @@
 package io.github.shanpark.r2batis.sql;
 
-import io.github.shanpark.r2batis.MethodImpl;
 import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
-import io.github.shanpark.r2batis.util.ReflectionUtils;
 import lombok.Getter;
-import ognl.Ognl;
-import ognl.OgnlException;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -55,157 +53,52 @@ public final class Foreach extends SqlNode {
     }
 
     @Override
-    public void evaluateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Class<?>> placeholderMap, Map<String, Object> paramMap) {
-        Collection<?> collectionParam;
-
-        // collection에 지정된 파라메터를 가져온다. collection에 지정된 건 argument.field 일 수도 있으므로 Ognl이 적용되어야 한다.
-        try {
-            String[] fields = collection.split("\\.");
-            if (fields.length == 1)
-                collectionParam = (Collection<?>) ReflectionUtils.findArgument(collection, paramInfos, args, orgArgCount); // 가져온 값은 반드시 Collection 이어야 한다. 아니면 ClassCaseException이 발생하겠지.
-            else
-                collectionParam = (Collection<?>) Ognl.getValue(collection.substring(collection.indexOf('.') + 1), ReflectionUtils.findArgument(fields[0], paramInfos, args, orgArgCount));
-        } catch (OgnlException e) {
-            throw new InvalidMapperElementException(e);
-        }
-
-        if (!collectionParam.isEmpty()) {
-            int addedArgs = 0; // item, index 속성이 설정되어 있으면 임시로 paramInfos, args에 해당 값을 추가하여 마치 처음부터 인자로 받은 것처럼 해서 하위 sql문들을 렌더링한다.
-            if (!item.isBlank())
-                addedArgs++;
-            if (!index.isBlank())
-                addedArgs++;
-
-            if (addedArgs > 0) {
-                paramInfos = Arrays.copyOf(paramInfos, paramInfos.length + addedArgs);
-                args = Arrays.copyOf(args, args.length + addedArgs);
-
-                if (!index.isBlank()) // index는 항상 integer 형이므로 미리 설정한다.
-                    paramInfos[paramInfos.length - addedArgs] = new MethodImpl.ParamInfo(index, Integer.class); // parameter로 index속성에 지정된 이름으로 parameter가 전달된 것처럼 하나 만들어 넣어준다.
-            }
-
-            Map<String, Class<?>> tempPlaceholderMap = new HashMap<>();
-            Map<String, Object> tempParamMap = new HashMap<>();
-            int inx = 0;
-            for (Object collectionItem : collectionParam) {
-                // 실제 generate할 때 :item.xxx 를 모두 찾아서 placeholder와 그 값, 타입을 생성해서 map에 넣어줘야 한다.
-                // :index도 모두 다른 이름으로 placeholder를 생성해주고 값과, 타입(Integer.class) 생성해서 map에 넣어줘야 한다.
-                if (!item.isBlank()) {
-                    paramInfos[paramInfos.length - 1] = new MethodImpl.ParamInfo(item, collectionItem.getClass()); // parameter로 item속성에 지정된 이름으로 parameter가 전달된 것처럼 하나 만들어 넣어준다.
-                    args[args.length - 1] = collectionItem; // 실제 전달된 것처럼 argument를 만들어 넣는다.
-                }
-                if (!index.isBlank()) {
-                    // paramInfos는 for loop 전에 이미 설정했다.
-                    args[args.length - addedArgs] = inx; // 실제 전달된 것처럼 argument를 만들어 넣는다.
-                }
-
-                tempPlaceholderMap.clear();
-                tempParamMap.clear();
-                Query.initParamMap(tempParamMap, paramInfos, args); // foreach 하위의 구문은 다시 item과 index를 넣고 다시 초기화 해서 evaluate해야 한다.
-                for (SqlNode sqlNode : sqlNodes)
-                    sqlNode.evaluateSql(paramInfos, args, orgArgCount, tempPlaceholderMap, tempParamMap); // 이 foreach 안에서 item을 이용하는 foreach가 이중으로 있을 수 있기 때문에 collectionItem마다 해줘야 한다.
-
-                for (Map.Entry<String, Class<?>> entry : tempPlaceholderMap.entrySet()) {
-                    String key = entry.getKey();
-                    String newItemName = getNewItemName(inx); // collectionItem의 새이름이다. item => :item_uid_inx 형태로 변환된다.
-                    String newIndexName = getNewIndexName(inx); // index 변수의 새이름이다.
-
-                    // 사용된 item, index 를 생성될 새 이름으로 변환한다.
-                    // item, index가 지정되지 않았으면 item, index는 모두 공백이고 key는 공백일 수 없으므로 item, index가 지정되었는지 따로 체크하지 않는다.
-                    if (key.equals(item) || key.startsWith(item + ".")) {
-                        placeholderMap.put(newItemName + key.substring(item.length()), entry.getValue());
-                        paramMap.put(newItemName, tempParamMap.get(item));
-                    } else if (key.equals(index)) {
-                        placeholderMap.put(newIndexName, entry.getValue());
-                        paramMap.put(newIndexName, tempParamMap.get(index));
-                    } else {
-                        placeholderMap.put(key, entry.getValue());
-
-                        String[] fields = key.split("\\.");
-                        paramMap.put(fields[0], tempParamMap.get(fields[0])); // 항상 paramMap에는 placeholder의 fields[0]만 들어간다. ognl로 읽어오기 때문이다.
-                    }
-                }
-
-                inx++;
-            }
-        }
-    }
-
-    @Override
-    public String generateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Object> paramMap, Set<String> bindSet) {
-        Collection<?> collectionParam;
-
+    public String generateSql(MapperContext mapperContext) {
         // collection에 지정된 건 argument.field 일 수도 있으므로 Ognl이 적용되어야 한다.
-        try {
-            String[] fields = collection.split("\\.");
-            if (fields.length == 1)
-                collectionParam = (Collection<?>) ReflectionUtils.findArgument(collection.trim(), paramInfos, args, orgArgCount); // 가져온 값은 반드시 Collection 이어야 한다. 아니면 ClassCaseException이 발생하겠지.
-            else
-                collectionParam = (Collection<?>) Ognl.getValue(collection.substring(collection.indexOf('.') + 1), ReflectionUtils.findArgument(fields[0], paramInfos, args, orgArgCount));
-        } catch (OgnlException e) {
-            throw new InvalidMapperElementException(e);
-        }
+        Collection<?> collectionParam = (Collection<?>) mapperContext.getVarByFullFields(collection); // 가져온 값은 반드시 Collection 이어야 한다. 아니면 ClassCaseException이 발생하겠지.
 
         if (!collectionParam.isEmpty()) {
             StringBuilder sb = new StringBuilder();
             StringBuilder tempSb = new StringBuilder();
 
-            int addedArgs = 0; // item, index 속성이 설정되어 있으면 임시로 paramInfos, args에 해당 값을 추가하여 마치 처음부터 인자로 받은 것처럼 해서 하위 sql문들을 렌더링한다.
-            if (!item.isBlank())
-                addedArgs++;
-            if (!index.isBlank())
-                addedArgs++;
-
-            if (addedArgs > 0) {
-                paramInfos = Arrays.copyOf(paramInfos, paramInfos.length + addedArgs);
-                args = Arrays.copyOf(args, args.length + addedArgs);
-
-                if (!index.isBlank()) // index는 항상 integer 형이므로 미리 설정한다.
-                    paramInfos[paramInfos.length - addedArgs] = new MethodImpl.ParamInfo(index, Integer.class); // parameter로 index속성에 지정된 이름으로 parameter가 전달된 것처럼 하나 만들어 넣어준다.
-            }
-
             int inx = 0;
             for (Object collectionItem : collectionParam) {
-                // for loop 안에서 참조하는 item, index 값들을 마치 param에 전달된 것처럼 만들어서 넣어준다. <if>의 test 조건같은
-                // 곳에서 사용될 수 있기 때문에 만들어서 넣어줘야 한다.
-                if (!item.isBlank()) {
-                    paramInfos[paramInfos.length - 1] = new MethodImpl.ParamInfo(item, collectionItem.getClass()); // parameter로 item속성에 지정된 이름으로 parameter가 전달된 것처럼 하나 만들어 넣어준다.
-                    args[args.length - 1] = collectionItem; // 실제 전달된 것처럼 argument를 만들어 넣는다.
-                }
-                if (!index.isBlank()) {
-                    // paramInfos는 for loop 전에 이미 설정했다.
-                    args[args.length - addedArgs] = inx; // 실제 전달된 것처럼 argument를 만들어 넣는다.
-                }
+                mapperContext.newBranch();
+
+                // index, item으로 지정된 값들을 local var 로 추가해준다.
+                if (!index.isBlank())
+                    mapperContext.pushLocalVar(index, Integer.class, inx); // index 이름으로 local var를 하나 추가한다.
+                if (!item.isBlank())
+                    mapperContext.pushLocalVar(item, collectionItem.getClass(), collectionItem); // item 이름으로 local var를 하나 추가한다.
 
                 // 실제 SQL 생성.
-                Set<String> tempBindSet = new HashSet<>();
                 for (SqlNode sqlNode : sqlNodes) {
-                    String sql = sqlNode.generateSql(paramInfos, args, orgArgCount, paramMap, tempBindSet); // generateSql()은 trim을 해서 보내므로 따로 trim()은 필요없다.
-                    if (!sql.isBlank()) {
-                        if (!sb.isEmpty())
-                            tempSb.append(separator);
+                    String sql = sqlNode.generateSql(mapperContext); // generateSql()은 trim을 해서 보내므로 따로 trim()은 필요없다.
+                    if (!sql.isBlank())
                         tempSb.append(sql);
-                        for (String key : tempBindSet) {
-                            String newItemName = getNewItemName(inx); // collectionItem의 새 이름이다.
-                            String newIndexName = getNewIndexName(inx); // index의 새 이름이다.
-                            if (key.equals(item) || key.startsWith(item + "."))
-                                key = newItemName + key.substring(item.length()); // item => :item_uid_inx, item.field => :item_uid_inx.field 형태로 변환.
-                            else if (key.equals(index))
-                                key = newIndexName; // index => :index_uid_inx:형태로 변환.
-
-                            bindSet.add(key);
-                        }
-                    }
                 }
+
+                // 생성된 SQL 에서 item, index 참조하는 부분도 새 이름으로 바꿔줘야 한다.
                 tempSb.append(' '); // SQL의 맨 마지막에 있는 :item, :index 에 매칭하려면 맨 뒤에 공백이 하나 붙어야 한다.
                 String sql = tempSb.toString();
-                if (!item.isBlank())
+                if (!item.isBlank()) {
+                    mapperContext.expandPlaceholder(item, getNewItemName(inx));
                     sql = expandLocalPlaceholder(sql, item, getNewItemName(inx));
-                if (!index.isBlank())
+                    mapperContext.popLocalVar(); // item 로컬 변수 제거. 이름이 없어도 push 의 역순으로 호출되면 문제 없다.
+                }
+                if (!index.isBlank()) {
+                    mapperContext.expandPlaceholder(index, getNewIndexName(inx));
                     sql = expandLocalPlaceholder(sql, index, getNewIndexName(inx));
+                    mapperContext.popLocalVar(); // index 로컬 변수 제거. 이름이 없어도 push 의 역순으로 호출되면 문제 없다.
+                }
+
+                if (!sb.isEmpty())
+                    sb.append(separator);
                 sb.append(sql.trim());
 
                 tempSb.setLength(0);
+
+                mapperContext.mergeBranch();
                 inx++;
             }
 

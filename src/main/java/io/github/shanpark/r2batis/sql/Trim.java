@@ -1,12 +1,12 @@
 package io.github.shanpark.r2batis.sql;
 
-import io.github.shanpark.r2batis.MethodImpl;
 import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -54,35 +54,29 @@ public final class Trim extends SqlNode {
     }
 
     @Override
-    public void evaluateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Class<?>> placeholderMap, Map<String, Object> paramMap) {
-        for (SqlNode sqlNode : sqlNodes)
-            sqlNode.evaluateSql(paramInfos, args, orgArgCount, placeholderMap, paramMap);
-    }
-
-    @Override
-    public String generateSql(MethodImpl.ParamInfo[] paramInfos, Object[] args, int orgArgCount, Map<String, Object> paramMap, Set<String> bindSet) {
+    public String generateSql(MapperContext mapperContext) {
         StringBuilder sb = new StringBuilder();
         for (SqlNode sqlNode : sqlNodes)
-            sb.append(sqlNode.generateSql(paramInfos, args, orgArgCount, paramMap, bindSet)).append(" "); // 반드시 공백 붙여야 함.
+            sb.append(sqlNode.generateSql(mapperContext)).append(" "); // 하위 노드가 생성한 sql뒤에 항상 공백을 붙인다.
 
         String sql = sb.toString().trim();
         if (sql.isBlank()) {
             return ""; // 아무런 sql이 생성되지 않았으면 prefix도 붙지 않는다.
         } else {
-            // 시작에 AND 또는 OR 가 있으면 삭제.
             if (prefixPattern != null) {
+                // 시작에 prefix가 있으면 삭제.
                 Matcher matcher = prefixPattern.matcher(sql);
                 if (matcher.find())
                     sql = sql.substring(matcher.end()).trim();
             }
             if (suffixPattern != null) {
-                // 마지막에 AND 또는 OR 가 있으면 삭제.
+                // 마지막에 suffix 가 있으면 삭제.
                 Matcher matcher = suffixPattern.matcher(sql);
                 if (matcher.find())
                     sql = sql.substring(0, matcher.start()).trim();
             }
 
-            return prefix + " " + sql; // 이미 trim 되어있다.
+            return prefix + " " + sql; // 마지막에 prefix 붙여서 반환.
         }
     }
 }
