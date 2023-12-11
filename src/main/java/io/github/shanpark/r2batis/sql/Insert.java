@@ -35,7 +35,7 @@ public class Insert extends Query {
                 if (!content.isBlank())
                     sqlNodes.add(new Sql(content.trim()));
             } else if (node.getNodeType() == Node.ELEMENT_NODE) {
-                if (node.getNodeName().equals("selectKey")) { // <insert> 에는 <selectKey> 가 가능하다.
+                if (node.getNodeName().equals("selectKey")) { // <insert> 에는 <selectKey> 가 가능하다. TODO <update>도 가능하다.
                     if (selectKey == null)
                         selectKey = new SelectKey((Element) node); // selectKey는 한 개만 가능.
                     else

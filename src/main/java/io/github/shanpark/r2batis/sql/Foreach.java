@@ -36,7 +36,7 @@ public final class Foreach extends SqlNode {
         open = element.getAttribute("open");
         close = element.getAttribute("close");
         separator = element.getAttribute("separator");
-        uniqueId = "_" + uid.incrementAndGet() + "_";
+        uniqueId = String.valueOf(uid.incrementAndGet());
 
         NodeList nodeList = element.getChildNodes();
         for (int inx = 0; inx < nodeList.getLength(); inx++) {
@@ -63,7 +63,7 @@ public final class Foreach extends SqlNode {
 
             int inx = 0;
             for (Object collectionItem : collectionParam) {
-                mapperContext.newBranch();
+                mapperContext.newBranch("_" + inx);
 
                 // index, item으로 지정된 값들을 local var 로 추가해준다.
                 if (!index.isBlank())
@@ -72,29 +72,28 @@ public final class Foreach extends SqlNode {
                     mapperContext.pushLocalVar(item, collectionItem.getClass(), collectionItem); // item 이름으로 local var를 하나 추가한다.
 
                 // 실제 SQL 생성.
-                for (SqlNode sqlNode : sqlNodes) {
-                    String sql = sqlNode.generateSql(mapperContext); // generateSql()은 trim을 해서 보내므로 따로 trim()은 필요없다.
-                    if (!sql.isBlank())
-                        tempSb.append(sql);
-                }
+                for (SqlNode sqlNode : sqlNodes)
+                    tempSb.append(sqlNode.generateSql(mapperContext)); // generateSql()은 trim을 해서 보내므로 따로 trim()은 필요없다.
 
                 // 생성된 SQL 에서 item, index 참조하는 부분도 새 이름으로 바꿔줘야 한다.
-                tempSb.append(' '); // SQL의 맨 마지막에 있는 :item, :index 에 매칭하려면 맨 뒤에 공백이 하나 붙어야 한다.
-                String sql = tempSb.toString();
-                if (!item.isBlank()) {
-                    mapperContext.expandPlaceholder(item, getNewItemName(inx));
-                    sql = expandLocalPlaceholder(sql, item, getNewItemName(inx));
-                    mapperContext.popLocalVar(); // item 로컬 변수 제거. 이름이 없어도 push 의 역순으로 호출되면 문제 없다.
-                }
-                if (!index.isBlank()) {
-                    mapperContext.expandPlaceholder(index, getNewIndexName(inx));
-                    sql = expandLocalPlaceholder(sql, index, getNewIndexName(inx));
-                    mapperContext.popLocalVar(); // index 로컬 변수 제거. 이름이 없어도 push 의 역순으로 호출되면 문제 없다.
-                }
+                if (!tempSb.isEmpty()) {
+                    tempSb.append(' '); // SQL의 맨 마지막에 있는 :item, :index 에 매칭하려면 맨 뒤에 공백이 하나 붙어야 한다.
+                    String sql = tempSb.toString();
+                    if (!item.isBlank()) {
+                        mapperContext.expandPlaceholder(item, getNewItemName(mapperContext));
+                        sql = expandLocalPlaceholder(sql, item, getNewItemName(mapperContext));
+                        mapperContext.popLocalVar(); // item 로컬 변수 제거. 이름이 없어도 push 의 역순으로 호출되면 문제 없다.
+                    }
+                    if (!index.isBlank()) {
+                        mapperContext.expandPlaceholder(index, getNewIndexName(mapperContext));
+                        sql = expandLocalPlaceholder(sql, index, getNewIndexName(mapperContext));
+                        mapperContext.popLocalVar(); // index 로컬 변수 제거. 이름이 없어도 push 의 역순으로 호출되면 문제 없다.
+                    }
 
-                if (!sb.isEmpty())
-                    sb.append(separator);
-                sb.append(sql.trim());
+                    if (!sb.isEmpty())
+                        sb.append(separator);
+                    sb.append(sql.trim());
+                }
 
                 tempSb.setLength(0);
 
@@ -110,12 +109,14 @@ public final class Foreach extends SqlNode {
         }
     }
 
-    private String getNewItemName(int inx) {
-        return item + uniqueId + inx;
+    private String getNewItemName(MapperContext mapperContext) {
+        // 중첩되지 않은 2개 이상의 foreach와 중첩된 foreach를 모두 고려해서 전체 sql 내에서 유일한 식별자 값이 되려면
+        // foreach의 uniqueId, branch의 uniqueId 모두 들어가야 전체 sql 내에서 유일하게 된다.
+        return item + "_" + uniqueId + mapperContext.getUniqueId();
     }
 
-    private String getNewIndexName(int inx) {
-        return index + uniqueId + inx;
+    private String getNewIndexName(MapperContext mapperContext) {
+        return index + "_" + uniqueId + mapperContext.getUniqueId();
     }
 
     /**
