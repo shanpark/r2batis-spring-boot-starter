@@ -18,6 +18,7 @@ import reactor.core.publisher.Mono;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -51,23 +52,37 @@ public class MethodImpl {
      * @return Mapper 인터페이스가 반환해야 하는 값.
      */
     public Object invoke(DatabaseClient databaseClient, TransactionalOperator transactionalOperator, Method method, Object[] args) {
-        if (query instanceof Insert insert) {
-            if (insert.getSelectKey() != null) {
-                if (insert.getSelectKey().getOrder().equalsIgnoreCase("before")) {
-                    return execSelectKeySql(databaseClient, insert.getSelectKey(), method, args)
-                            .then(Mono.defer(() -> (Mono<?>) execBodySql(databaseClient, method, args)))
-                            .as(transactionalOperator::transactional);
-                } else if (insert.getSelectKey().getOrder().equalsIgnoreCase("after")) {
-                    return ((Mono<?>) execBodySql(databaseClient, method, args))
-                            .flatMap(result ->
-                                    execSelectKeySql(databaseClient, insert.getSelectKey(), method, args).then(Mono.just(result))
-                            )
-                            .as(transactionalOperator::transactional);
-                }
-            }
-        }
+        List<SelectKey> selectKeys;
+        if ((query instanceof Insert insert) && !insert.getSelectKeys().isEmpty())
+            selectKeys = insert.getSelectKeys();
+        else if ((query instanceof Update update) && !update.getSelectKeys().isEmpty())
+            selectKeys = update.getSelectKeys();
+        else
+            selectKeys = null;
 
-        return execBodySql(databaseClient, method, args);
+        if (selectKeys != null) {
+            Mono<?> beforeMono = Mono.empty();
+            for (SelectKey selectKey : selectKeys) {
+                if (selectKey.getOrder().equalsIgnoreCase("before"))
+                    beforeMono = beforeMono.then(Mono.defer(() -> execSelectKeySql(databaseClient, selectKey, method, args)));
+            }
+            return beforeMono.then(Mono.defer(() -> { // main sql의 생성(execBodySql()의 호출)은 before mono의 생성뿐만 아니라 실행이 완료될 때 까지 지연되어야 한다. 그래서 defer() 사용.
+                        return ((Mono<?>) execBodySql(databaseClient, method, args))
+                                .flatMap(result ->
+                                        Mono.defer(() -> { // after mono의 생성도 execBodySql()이 반환한 모노가 실행이 완료될 때 까지 지연되어야 한다. 여기서도 defer()를 사용해야 맞다.
+                                            Mono<?> afterMono = Mono.empty();
+                                            for (SelectKey selectKey : selectKeys) {
+                                                if (selectKey.getOrder().equalsIgnoreCase("after"))
+                                                    afterMono = afterMono.then(Mono.defer(() -> execSelectKeySql(databaseClient, selectKey, method, args)));
+                                            }
+                                            return afterMono.then(Mono.just(result));
+                                        })
+                                );
+                    }))
+                    .as(transactionalOperator::transactional);
+        } else {
+            return execBodySql(databaseClient, method, args);
+        }
     }
 
     /**

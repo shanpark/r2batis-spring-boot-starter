@@ -51,27 +51,6 @@ public class ReflectionUtils {
             field.setAccessible(false);
     }
 
-//    public static Class<?> getFieldsType(String[] fields, MethodImpl.ParamInfo[] parameters, int orgArgCount) {
-//        // interface 메소드로 넘어온 parameter중에서 place holder과 같은 이름의 parameter를 찾는다.
-//        int inx;
-//        for (inx = parameters.length - 1; inx >= 0; inx--) { // 뒤에 붙은 param들이 우선순위가 더 높기때문에 반드시 뒤에서부터 검색.
-//            if (fields[0].equals(parameters[inx].getName()))
-//                break;
-//        }
-//
-//        if (inx >= 0) { // 같은 이름의 parameter 찾음.
-//            return ReflectionUtils.getFieldType(parameters[inx].getType(), fields, 1);
-//        } else { // 같은 이름의 parameter 못찾음.
-//            if (orgArgCount == 1) { // 맞는 parameter를 못찾았지만 최초 argument가 1개인 경우
-//                if (!TypeUtils.supports(parameters[0].getType())) { // 지원하는 primitive 타입이 아니라면 그 parameter각 POJO 객체라고 보고 그 객체의 field 중에서 찾는다.
-//                    return ReflectionUtils.getFieldType(parameters[0].getType(), fields, 0);
-//                }
-//            }
-//            // 여기까지 왔으면 맞는 parameter가 없다는 뜻이다. 인터페이스 선언이나 xml mapper 선언에서 이름이 틀린 것이다.
-//            throw new InvalidMapperElementException(String.format("Can't bind ':%s' parameter.", String.join(".", fields)));
-//        }
-//    }
-
     /**
      * 객체의 필드값을 찾아서 값과 Class 객체를 tuple로 반환한다.
      * "obj.field1.field2" 같은 접근이라면 recursive하게 하위 필드를 찾아서 계속 호출된다.
@@ -107,30 +86,4 @@ public class ReflectionUtils {
         }
         return getterMethod;
     }
-
-//    public static Object findArgument(String name, MethodImpl.ParamInfo[] paramInfos, Object[] arguments, int orgArgCount) {
-//        // interface 메소드로 넘어온 parameter중에서 placeholder와 같은 이름의 parameter를 찾는다.
-//        // paramInfos, arguments는 로컬 변수를 위한 stack 역할도 하기때문에 항상 뒤에서부터 검색을 해야한다.
-//        int inx;
-//        for (inx = paramInfos.length - 1; inx >= 0 ; inx--) {
-//            if (name.equals(paramInfos[inx].getName()))
-//                break;
-//        }
-//
-//        if (inx >= 0) { // 같은 이름의 parameter 찾음.
-//            return arguments[inx];
-//        } else { // 같은 이름의 parameter 못찾음.
-//            if (orgArgCount == 1) { // 맞는 parameter를 못찾았지만 최초 argument가 1개인 경우
-//                if (!TypeUtils.supports(paramInfos[0].getType())) { // 지원하는 primitive 타입이 아니라면 그 parameter각 POJO 객체라고 보고 그 객체의 field 중에서 찾는다.
-//                    try {
-//                        return Ognl.getValue(name, arguments[0]);
-//                    } catch (OgnlException e) {
-//                        throw new InvalidMapperElementException(String.format("Can't bind ':%s' parameter.", name), e);
-//                    }
-//                }
-//            }
-//            // 여기까지 왔으면 맞는 parameter가 없다는 뜻이다. 인터페이스 선언이나 xml mapper 선언에서 이름이 틀린 것이다.
-//            throw new InvalidMapperElementException(String.format("Can't bind ':%s' parameter.", name));
-//        }
-//    }
 }

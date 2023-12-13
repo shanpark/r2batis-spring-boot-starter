@@ -6,6 +6,9 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Getter
 public class Update extends Query {
     //!!! R2DBC의 Spec 객체가 updatedRows()와 one() 둘 중 하나만 실행이 가능하다.
@@ -15,6 +18,7 @@ public class Update extends Query {
 
     private final boolean useGeneratedKeys; // 생성된 키값을 직접 반환값으로 받는 것만 가능하다.
     private final String keyColumn; // 생성되는 키 컬럼을 지정한다. MyBatis와 다름.
+    private final List<SelectKey> selectKeys = new ArrayList<>();
 
     public Update(Element element) {
         super(element);
@@ -22,8 +26,8 @@ public class Update extends Query {
         useGeneratedKeys = Boolean.parseBoolean(element.getAttribute("useGeneratedKeys").trim());
         keyColumn = element.getAttribute("keyColumn").trim();
 
-        if (isUseGeneratedKeys() && (getResultClass() == null))
-            throw new InvalidMapperElementException("The <insert> element that uses generatedKeys should include the 'resultType' attribute.");
+        if (useGeneratedKeys && (keyColumn.isBlank() || getResultClass() == null))
+            throw new InvalidMapperElementException("The <update> element that uses generatedKeys should include the 'keyColumn' and 'resultType' attributes.");
 
         NodeList nodeList = element.getChildNodes();
         for (int inx = 0; inx < nodeList.getLength(); inx++) {
@@ -34,12 +38,15 @@ public class Update extends Query {
                 if (!content.isBlank())
                     sqlNodes.add(new Sql(content.trim()));
             } else if (node.getNodeType() == Node.ELEMENT_NODE) {
-                sqlNodes.add(SqlNode.newSqlNode((Element) node));
+                if (node.getNodeName().equals("selectKey")) // <update> 에는 <selectKey> 가 가능하다.
+                    selectKeys.add(new SelectKey((Element) node)); // selectKey는 여러 개도 가능하다.
+                else
+                    sqlNodes.add(SqlNode.newSqlNode((Element) node));
             }
         }
     }
 
     public boolean isGenerateKeys() {
-        return useGeneratedKeys && (keyColumn != null) && (super.getResultClass() != null); // generated key가 실제 반환값이 되므로 항상 returnType이 지정되어야 한다.
+        return useGeneratedKeys && !keyColumn.isBlank() && (getResultClass() != null); // generated key가 실제 반환값이 되므로 항상 returnType이 지정되어야 한다.
     }
 }

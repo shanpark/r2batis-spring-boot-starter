@@ -36,7 +36,7 @@ public final class If extends SqlNode {
     @Override
     public String generateSql(MapperContext mapperContext) {
         try {
-            if ((Boolean) Ognl.getValue(test, mapperContext.getParamMap())) { // test 조건 검사
+            if ((Boolean) Ognl.getValue(test, mapperContext.getParamMap())) { // test 조건 검사. 현 시점 이전에 생성된 모든 로컬 변수까지도 반영되어야 하므로 getParamMap()을 사용하는 게 맞다.
                 StringBuilder sb = new StringBuilder();
                 for (SqlNode sqlNode : sqlNodes)
                     sb.append(sqlNode.generateSql(mapperContext)).append(" "); // 하위 노드가 생성한 sql뒤에 항상 공백을 붙인다.
