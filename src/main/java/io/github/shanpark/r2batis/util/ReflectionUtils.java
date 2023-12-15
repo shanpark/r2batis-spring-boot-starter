@@ -1,5 +1,6 @@
 package io.github.shanpark.r2batis.util;
 
+import io.github.shanpark.r2batis.R2batisAutoConfiguration;
 import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
 
 import java.lang.reflect.Field;
@@ -24,12 +25,15 @@ public class ReflectionUtils {
                 return TypeUtils.convert(map.values().iterator().next(), clazz);
             } else {
                 Object obj = clazz.getDeclaredConstructor().newInstance();
-                for (Map.Entry<String, Object> entry : map.entrySet())
-                    setFieldValue(obj, entry.getKey(), entry.getValue());
+                for (Map.Entry<String, Object> entry : map.entrySet()) {
+                    String key = R2batisAutoConfiguration.mapUnderscoreToCamelCase ? CaseUtils.underscoreToCamalCase(entry.getKey()) : entry.getKey();
+                    setFieldValue(obj, key, entry.getValue());
+                }
                 return obj;
             }
-        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException |
-                 NoSuchFieldException e) {
+        } catch (NoSuchMethodException e) {
+            throw new InvalidMapperElementException("No default constructor was found. [" + clazz.getName() + "]", e);
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchFieldException e) {
             throw new InvalidMapperElementException(e);
         }
     }

@@ -1,4 +1,4 @@
-package io.github.shanpark.r2batis.sql;
+package io.github.shanpark.r2batis.mapper;
 
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;

@@ -1,4 +1,4 @@
-package io.github.shanpark.r2batis.sql;
+package io.github.shanpark.r2batis.mapper;
 
 import io.github.shanpark.r2batis.MethodImpl;
 import io.github.shanpark.r2batis.exception.InvalidMapperElementException;

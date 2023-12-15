@@ -1,7 +1,7 @@
 package io.github.shanpark.r2batis;
 
 import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
-import io.github.shanpark.r2batis.sql.*;
+import io.github.shanpark.r2batis.mapper.*;
 import io.github.shanpark.r2batis.util.ReflectionUtils;
 import io.github.shanpark.r2batis.util.TypeUtils;
 import lombok.AllArgsConstructor;

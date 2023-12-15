@@ -12,6 +12,7 @@ import org.springframework.core.env.Environment;
 public class R2batisAutoConfiguration {
 
     public static boolean isTesting = false;
+    public static boolean mapUnderscoreToCamelCase = false;
 
     @Bean
     public static BeanDefinitionRegistryPostProcessor beanDefinitionRegistryPostProcessor(Environment environment, ApplicationContext applicationContext) {

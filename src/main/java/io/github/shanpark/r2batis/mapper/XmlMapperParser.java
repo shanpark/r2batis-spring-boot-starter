@@ -1,4 +1,4 @@
-package io.github.shanpark.r2batis.sql;
+package io.github.shanpark.r2batis.mapper;
 
 import io.github.shanpark.r2batis.exception.MapperParsingException;
 import lombok.extern.slf4j.Slf4j;

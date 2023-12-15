@@ -1,9 +1,9 @@
 package io.github.shanpark.r2batis;
 
 import io.github.shanpark.r2batis.annotation.R2dbcMapper;
-import io.github.shanpark.r2batis.sql.Mapper;
-import io.github.shanpark.r2batis.sql.Query;
-import io.github.shanpark.r2batis.sql.XmlMapperParser;
+import io.github.shanpark.r2batis.mapper.Mapper;
+import io.github.shanpark.r2batis.mapper.Query;
+import io.github.shanpark.r2batis.mapper.XmlMapperParser;
 import org.apache.tools.ant.DirectoryScanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +50,8 @@ public class BeanDefinitionRegistryPostProcessorImpl implements BeanDefinitionRe
     @SuppressWarnings("NullableProblems")
     public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
         // 여기서 beanFactory 인자는 singleton으로 앞으로도 불변이어야 한다.
+        R2batisAutoConfiguration.mapUnderscoreToCamelCase = Boolean.parseBoolean(environment.getProperty("r2batis.configuration.mapUnderscoreToCamelCase"));
+
         Map<String, InterfaceImpl> mapperMap = scanMapperXml();
         List<Class<?>> mapperInterfaceClasses = scanMapperInterface(mapperMap);
         for (Class<?> interfaceClass : mapperInterfaceClasses) {

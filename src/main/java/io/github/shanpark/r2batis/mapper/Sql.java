@@ -1,4 +1,4 @@
-package io.github.shanpark.r2batis.sql;
+package io.github.shanpark.r2batis.mapper;
 
 import java.util.HashSet;
 import java.util.Set;
