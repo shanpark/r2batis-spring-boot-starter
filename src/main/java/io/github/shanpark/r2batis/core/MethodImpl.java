@@ -1,4 +1,4 @@
-package io.github.shanpark.r2batis;
+package io.github.shanpark.r2batis.core;
 
 import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
 import io.github.shanpark.r2batis.mapper.*;
@@ -129,16 +129,18 @@ public class MethodImpl {
 
                     try {
                         String[] fields = selectKey.getKeyProperty().split("\\s*\\.\\s*");
+                        Class<?> targetType = mapperContext.getTypeByFullFields(fields);
                         if (fields.length == 1) {
                             // keyProperty는 반드시 method arg로 넘겨진 pojo 객체의 한 필드이어야 한다. 따라서 field 가 1개라면 method arg도 1개이어야 그 arg의 필드로 판단해서 값을 설정할 수 있다.
                             if (mapperContext.getMethodArgs().size() == 1)
-                                Ognl.setValue(selectKey.getKeyProperty().trim(), args[0], selectedValue);
+                                Ognl.setValue(selectKey.getKeyProperty().trim(), args[0], TypeUtils.convert(selectedValue, targetType));
                             else
                                 throw new InvalidMapperElementException("The 'keyProperty' expression cannot be resolved.");
                         } else if (fields.length > 1) {
                             // field 가 여러 개로 이루어졌다면 method arg 중에 하나가 pojo가 될 것이고 해당 arg를 찾아서 그 arg의 field에 값을 설정해야 한다.
                             Ognl.setValue(selectKey.getKeyProperty().substring(selectKey.getKeyProperty().indexOf('.') + 1),
-                                    mapperContext.getVarByField0(fields[0]), selectedValue);
+                                    mapperContext.getVarByField0(fields[0]),
+                                    TypeUtils.convert(selectedValue, targetType));
                         } else {
                             throw new InvalidMapperElementException("The 'keyProperty' expression cannot be resolved.");
                         }

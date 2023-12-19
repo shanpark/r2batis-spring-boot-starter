@@ -11,12 +11,14 @@ import java.util.List;
 public class Query {
 
     private final String id;
+    private final String databaseId;
     private final Class<?> resultClass;
 
     protected final List<SqlNode> sqlNodes = new ArrayList<>();
 
     public Query(Element element) {
         id = element.getAttribute("id").trim();
+        databaseId = element.getAttribute("databaseId").trim();
         String resultType = element.getAttribute("resultType").trim();
         try {
             resultClass = !resultType.isBlank() ? Class.forName(resultType) : null;

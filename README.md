@@ -24,7 +24,7 @@ repositories {
 dependencies {
     ...
     implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
-    implementation 'com.github.shanpark:r2batis-spring-boot-starter:0.0.9'
+    implementation 'com.github.shanpark:r2batis-spring-boot-starter:0.1.2'
     // include vendor dependent R2DBC driver.
 }
 ```
@@ -99,7 +99,22 @@ public interface CustomerMapper {
 
 ## 4. Notes
 
-  - The `<selectKey>` element can only be used within an `<insert>` element and can be used only once.
-  - The `keyColumn` attribute of the `<selectKey>` element can only contain a single column name.
-  - `<insert>`, `<update>`, `<delete>` elements return the number of affected rows.  
-    And the result type is `Long`. (MySQL, MaraiDB implementation tested.)
+- The `keyColumn` attribute of the `<selectKey>` element can only contain a single column name.
+- `<insert>`, `<update>`, `<delete>` elements return the number of affected rows.  
+  And the result type is `Long`. (MySQL, MaraiDB implementation tested.)
+
+## 5. R2dbc Driver test notes
+
+### MariaDB
+
+- ZonedDateTime 을 파라메터로 전달하면 r2dbc 드라이버가 codec이 없다고 함. 지원하지 않는 것으로 보임.
+
+### MySQL
+
+- java.util.Date 타입의 파라메터를 전달하면 타임존 정보가 사라지고 DB 서버의 시간대로 인식된다.
+  ZonedDateTime 타입을 사용하면 타임존 정보가 정상적으로 유지된다.
+
+### Oracle
+
+- Oracle용 r2dbc 드라이버의 공식 문서상으로는 Oracle 18 이후 버전에서 공식 지원한다고 한다.
+- java.util.Date 타입의 파라메터를 사용해도 타임존 정보가 잘 유지되어 예상대로 동작한다.

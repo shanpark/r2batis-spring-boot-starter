@@ -7,6 +7,7 @@ import org.w3c.dom.NodeList;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Data
 public class Mapper {
@@ -18,7 +19,13 @@ public class Mapper {
     private final List<Update> updateList = new ArrayList<>();
     private final List<Delete> deleteList = new ArrayList<>();
 
-    public Mapper(Element root) {
+    /**
+     * Mapper 클래스 생성자.
+     *
+     * @param databaseId DatabaseIdProvider가 반환한 현재 connection의 database ID. 구하지 못했다면 null일 수도 있다.
+     * @param root 맵퍼 XML의 root element.
+     */
+    public Mapper(String databaseId, Element root) {
         interfaceName = root.getAttribute("namespace").trim();
 
         NodeList nodeList = root.getChildNodes();
@@ -30,10 +37,26 @@ public class Mapper {
                 String nodeName = element.getNodeName();
 
                 switch (nodeName) {
-                    case "select" -> selectList.add(new Select(element));
-                    case "insert" -> insertList.add(new Insert(element));
-                    case "update" -> updateList.add(new Update(element));
-                    case "delete" -> deleteList.add(new Delete(element));
+                    case "select" -> {
+                        Select select = new Select(element);
+                        if (select.getDatabaseId().isBlank() || Objects.equals(select.getDatabaseId(), databaseId))
+                            selectList.add(select);
+                    }
+                    case "insert" -> {
+                        Insert insert = new Insert(element);
+                        if (insert.getDatabaseId().isBlank() || Objects.equals(insert.getDatabaseId(), databaseId))
+                            insertList.add(insert);
+                    }
+                    case "update" -> {
+                        Update update = new Update(element);
+                        if (update.getDatabaseId().isBlank() || Objects.equals(update.getDatabaseId(), databaseId))
+                            updateList.add(update);
+                    }
+                    case "delete" -> {
+                        Delete delete = new Delete(element);
+                        if (delete.getDatabaseId().isBlank() || Objects.equals(delete.getDatabaseId(), databaseId))
+                            deleteList.add(delete);
+                    }
                 }
             }
         }

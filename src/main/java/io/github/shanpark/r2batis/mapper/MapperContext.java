@@ -1,6 +1,6 @@
 package io.github.shanpark.r2batis.mapper;
 
-import io.github.shanpark.r2batis.MethodImpl;
+import io.github.shanpark.r2batis.core.MethodImpl;
 import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
 import io.github.shanpark.r2batis.util.ReflectionUtils;
 import io.github.shanpark.r2batis.util.TypeUtils;
@@ -287,7 +287,7 @@ public class MapperContext {
      * @param fields 타입을 찾으려는 변수 이름이 "pojo.field1.field2" 인 경우 ["pojo", "field1", "field2"] 배열이 전달된다.
      * @return 발견된 변수의 Class 객체를 반환.
      */
-    private Class<?> getTypeByFullFields(String[] fields) {
+    public Class<?> getTypeByFullFields(String[] fields) {
         // localVars는 스택과 같다. 뒤에 추가된 변수가 우선순위가 더 높으므로 뒤에서부터 검색한다.
         MethodImpl.ParamInfo paramInfo = null;
         for (int inx = localVars.size() - 1; inx >= 0; inx--) { // 뒤에 붙은 param들이 우선순위가 더 높기때문에 반드시 뒤에서부터 검색.
