@@ -200,10 +200,13 @@ public class BeanDefinitionRegistryPostProcessorImpl implements BeanDefinitionRe
      * @param interfaceClass 생성할 Bean이 구현할 interface의 Class 객체.
      */
     private void createR2dbcBean(ConfigurableListableBeanFactory beanFactory, Class<?> interfaceClass) {
+        R2dbcMapper r2dbcAnnotation = interfaceClass.getAnnotation(R2dbcMapper.class);
+        String connectionFactoryName = r2dbcAnnotation.connectionFactory();
+
         Object bean = Proxy.newProxyInstance(
                 interfaceClass.getClassLoader(),
                 new Class<?>[] { interfaceClass },
-                new MapperInvocationHandler(interfaceClass.getName())
+                new MapperInvocationHandler(interfaceClass.getName(), connectionFactoryName)
         );
         beanFactory.registerSingleton(interfaceClass.getSimpleName(), bean);
     }

@@ -1,7 +1,9 @@
 package io.github.shanpark.r2batis.core;
 
 import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
+import io.r2dbc.spi.ConnectionFactory;
 import lombok.Data;
+import org.springframework.r2dbc.core.DatabaseClient;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -10,11 +12,21 @@ import java.util.Map;
 @Data
 public class InterfaceImpl {
     private final String name;
+    private final String connectionFactoryName;
     private final Map<String, MethodImpl> methodMap;
 
-    public InterfaceImpl(String name) {
+    private ConnectionFactory connectionFactory;
+    private DatabaseClient databaseClient;
+
+    public InterfaceImpl(String name, String connectionFactoryName) {
         this.name = name;
+        this.connectionFactoryName = connectionFactoryName;
         methodMap = new HashMap<>();
+    }
+
+    public void setConnectionFactory(ConnectionFactory connectionFactory) {
+        this.connectionFactory = connectionFactory;
+        databaseClient = DatabaseClient.builder().connectionFactory(connectionFactory).build();
     }
 
     public void addMethod(MethodImpl methodImpl) {
@@ -31,7 +43,7 @@ public class InterfaceImpl {
     public Object invoke(Method method, Object[] args) {
         MethodImpl methodImpl = methodMap.get(method.getName());
         if (methodImpl != null)
-            return methodImpl.invoke(R2batisInitializer.databaseClient, R2batisInitializer.transactionalOperator, method, args);
+            return methodImpl.invoke(databaseClient, method, args);
         else
             throw new InvalidMapperElementException("There is no valid method with name [" + method.getName() + "]. Verify the method name or 'id' in the mapper XML");
     }

@@ -12,7 +12,6 @@ import ognl.Ognl;
 import ognl.OgnlException;
 import org.reactivestreams.Publisher;
 import org.springframework.r2dbc.core.DatabaseClient;
-import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -51,7 +50,7 @@ public class MethodImpl {
      * @param args Mapper 인터페이스의 메소드를 호출할 때 전달된 argument 들.
      * @return Mapper 인터페이스가 반환해야 하는 값.
      */
-    public Object invoke(DatabaseClient databaseClient, TransactionalOperator transactionalOperator, Method method, Object[] args) {
+    public Object invoke(DatabaseClient databaseClient, Method method, Object[] args) {
         List<SelectKey> selectKeys;
         if ((query instanceof Insert insert) && !insert.getSelectKeys().isEmpty())
             selectKeys = insert.getSelectKeys();
@@ -78,8 +77,7 @@ public class MethodImpl {
                                             return afterMono.then(Mono.just(result));
                                         })
                                 );
-                    }))
-                    .as(transactionalOperator::transactional);
+                    }));
         } else {
             return execBodySql(databaseClient, method, args);
         }

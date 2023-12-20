@@ -15,7 +15,7 @@ import java.io.InputStream;
 @Slf4j
 public class XmlMapperParser {
 
-    public static Mapper parse(String databaseId, InputStream is) {
+    public static Mapper parse(InputStream is) {
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
@@ -27,7 +27,7 @@ public class XmlMapperParser {
                 return null; // mapper xml 파일이 아닌 xml 파일은 무시한다.
             }
 
-            return new Mapper(databaseId, root);
+            return new Mapper(root);
         } catch (ParserConfigurationException | IOException | SAXException e) {
             throw new MapperParsingException(e);
         }
