@@ -107,14 +107,16 @@ public interface CustomerMapper {
 
 ### MariaDB
 
-- ZonedDateTime 을 파라메터로 전달하면 r2dbc 드라이버가 codec이 없다고 함. 지원하지 않는 것으로 보임.
+- 테스트 서버가 같은 시간대로 설정되어 있어서 java.util.Date 가 정상적으로 타임존 정보가 유지되는지 테스트 해보지 못함.
+- ZonedDateTime 을 파라메터로 전달하면 r2dbc 드라이버가 codec이 없다고 한다. (미지원으로 보임.)
 
 ### MySQL
 
-- java.util.Date 타입의 파라메터를 전달하면 타임존 정보가 사라지고 DB 서버의 시간대로 인식된다.
-  ZonedDateTime 타입을 사용하면 타임존 정보가 정상적으로 유지된다.
+- java.util.Date 타입의 파라메터를 전달하면 클라이언트의 타임존 정보가 무시되고 DB 서버의 시간대로 인식된다.
+- DB로부터 전달된 DATETIME 값을 java.util.Date로 받으면 DB서버의 타임존 시간이라고 보고 로컬 시간대로 변환되어 받는다. 
+- ZonedDateTime 타입을 사용하면 타임존 정보가 정상적으로 유지된다.
 
 ### Oracle
 
 - Oracle용 r2dbc 드라이버의 공식 문서상으로는 Oracle 18 이후 버전에서 공식 지원한다고 한다.
-- java.util.Date 타입의 파라메터를 사용해도 타임존 정보가 잘 유지되어 예상대로 동작한다.
+- java.util.Date 타입의 값을 파라메터로 전달하거나 DB의 시간값을 읽어와서 java.util.Date 타입으로 받거나 모두 타임존 정보를 무시하고 각자의 로컬 타임으로 해석해서 사용한다.
