@@ -89,7 +89,7 @@ public class MethodImpl {
      * {@code <selectKey>} 구문을 실행하는 Mono 생성.
      * {@code <selectKey>}의 SQL 문은 사실 자신이 속한 본문의 SQL과는 전혀 별개로 수행되어야 한다.
      * 단지 argument 정보를 공유할 뿐이며 실행 결과로 argument에 실행 결과 값이 반영될 것이다.
-     * TODO 따라서 항상 값을 반환하는 select 문 이어야 한다. 그렇지 않으면 에러 발생해야 한다.
+     * 따라서 항상 값을 반환하는 select 문 이어야 한다. 그렇지 않으면 에러 발생해야 한다.
      *
      * @param databaseClient SQL을 실행할 DatabaseClient 객체.
      * @param selectKey {@code <selectKey>} Query 객체.
@@ -116,7 +116,8 @@ public class MethodImpl {
         }
 
         return spec.fetch()
-                .one()
+                .one() // 여기서 반드시 1개의 값이 나와야 한다. 그렇지 않으면 error case.
+                .switchIfEmpty(Mono.error(new InvalidMapperElementException("The <selectKey> element does not retrieve any value. [" + name + "]")))
                 .doOnNext(resultMap -> {
                     Object selectedValue;
                     if (!selectKey.getKeyColumn().isBlank()) {
