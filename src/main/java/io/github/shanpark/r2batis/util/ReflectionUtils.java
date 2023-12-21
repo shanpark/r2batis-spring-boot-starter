@@ -1,6 +1,5 @@
 package io.github.shanpark.r2batis.util;
 
-import io.github.shanpark.r2batis.R2batisAutoConfiguration;
 import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
 
 import java.lang.reflect.Field;
@@ -19,14 +18,14 @@ public class ReflectionUtils {
      * @param clazz 생성할 객체의 타입 Class
      * @return 생성되어 값이 채워진 객체.
      */
-    public static Object newInstanceFromMap(Map<String, Object> map, Class<?> clazz) {
+    public static Object newInstanceFromMap(Map<String, Object> map, Class<?> clazz, boolean mapUnderscoreToCamelCase) {
         try {
             if (TypeUtils.supports(clazz)) {
                 return TypeUtils.convert(map.values().iterator().next(), clazz);
             } else {
                 Object obj = clazz.getDeclaredConstructor().newInstance();
                 for (Map.Entry<String, Object> entry : map.entrySet()) {
-                    String key = R2batisAutoConfiguration.mapUnderscoreToCamelCase ? CaseUtils.underscoreToCamalCase(entry.getKey()) : entry.getKey();
+                    String key = mapUnderscoreToCamelCase ? CaseUtils.underscoreToCamalCase(entry.getKey()) : entry.getKey();
                     setFieldValue(obj, key, entry.getValue());
                 }
                 return obj;

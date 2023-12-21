@@ -7,8 +7,8 @@ public class MapperInvocationHandler implements InvocationHandler {
 
     private final InterfaceImpl interfaceImpl;
 
-    public MapperInvocationHandler(String interfaceName, String connectionFactoryName) {
-        interfaceImpl = new InterfaceImpl(interfaceName, connectionFactoryName);
+    public MapperInvocationHandler(String interfaceName, String connectionFactoryName, String r2batisPropertiesName) {
+        interfaceImpl = new InterfaceImpl(interfaceName, connectionFactoryName, r2batisPropertiesName);
         R2batisInitializer.interfaceMap.put(interfaceName, interfaceImpl);
     }
 

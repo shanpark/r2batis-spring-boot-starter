@@ -24,6 +24,7 @@ import java.util.Map;
 @Slf4j
 public class MethodImpl {
 
+    private final InterfaceImpl host;
     private final String name;
     private final Query query;
 
@@ -37,7 +38,8 @@ public class MethodImpl {
         Class<?> type;
     }
 
-    public MethodImpl(String name, Query query) {
+    public MethodImpl(InterfaceImpl host, String name, Query query) {
+        this.host = host;
         this.name = name;
         this.query = query;
     }
@@ -84,12 +86,13 @@ public class MethodImpl {
     }
 
     /**
-     * &lt;selectKey&gt; 구문을 실행하는 Mono 생성.
-     * &lt;selectKey&gt;의 SQL 문은 사실 자신이 속한 본문의 SQL과는 전혀 별개로 수행되어야 한다.
+     * {@code <selectKey>} 구문을 실행하는 Mono 생성.
+     * {@code <selectKey>}의 SQL 문은 사실 자신이 속한 본문의 SQL과는 전혀 별개로 수행되어야 한다.
      * 단지 argument 정보를 공유할 뿐이며 실행 결과로 argument에 실행 결과 값이 반영될 것이다.
+     * TODO 따라서 항상 값을 반환하는 select 문 이어야 한다. 그렇지 않으면 에러 발생해야 한다.
      *
      * @param databaseClient SQL을 실행할 DatabaseClient 객체.
-     * @param selectKey &lt;selectKey&gt; Query 객체.
+     * @param selectKey {@code <selectKey>} Query 객체.
      * @param method Mapper 인터페이스의 Method 객체.
      * @param args Mapper 인터페이스의 메소드를 호출할 때 전달된 argument 들.
      * @return selectKey 구문이 반환하는 값을 발행하는 Mono 객체.
@@ -217,11 +220,11 @@ public class MethodImpl {
         if (Flux.class.isAssignableFrom(method.getReturnType())) {
             return spec.fetch()
                     .all()
-                    .map(map -> ReflectionUtils.newInstanceFromMap(map, query.getResultClass()));
+                    .map(map -> ReflectionUtils.newInstanceFromMap(map, query.getResultClass(), host.getR2batisProperties().isMapUnderscoreToCamelCase()));
         } else {
             return spec.fetch()
                     .one()
-                    .map(map -> ReflectionUtils.newInstanceFromMap(map, query.getResultClass()));
+                    .map(map -> ReflectionUtils.newInstanceFromMap(map, query.getResultClass(), host.getR2batisProperties().isMapUnderscoreToCamelCase()));
         }
     }
 

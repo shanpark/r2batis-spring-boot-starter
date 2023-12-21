@@ -2,6 +2,7 @@ package io.github.shanpark.r2batis;
 
 import io.github.shanpark.r2batis.annotation.R2dbcMapper;
 import io.github.shanpark.r2batis.core.MapperInvocationHandler;
+import io.github.shanpark.r2batis.core.R2batisProperties;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
@@ -35,7 +36,7 @@ public class BeanDefinitionRegistryPostProcessorImpl implements BeanDefinitionRe
     @Override
     @SuppressWarnings("NullableProblems")
     public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
-        R2batisAutoConfiguration.mapUnderscoreToCamelCase = Boolean.parseBoolean(applicationContext.getEnvironment().getProperty("r2batis.configuration.mapUnderscoreToCamelCase"));
+        createDefaultR2batisProperties();
 
         // 여기서는 @R2batisMapper 가 지정된 interface만 찾아서 bean으로 일단 등록해준다.
         List<Class<?>> mapperInterfaceClasses = scanMapperInterface();
@@ -194,6 +195,27 @@ public class BeanDefinitionRegistryPostProcessorImpl implements BeanDefinitionRe
     }
 
     /**
+     * default 값을 갖는 R2batisProperties 객체를 하나 생성해둔다. (Bean 아님)
+     * 아무 설정도 하지 않으면 아래 값들이 default가 된다.
+     * - r2batis.mapper-locations = "classpath:mapper\/**\/*.xml"
+     * - r2batis.configuration.mapUnderscoreToCamelCase = false
+     * application.properties에 위 값을 설정하면 그 값이 override 한다.
+     */
+    private void createDefaultR2batisProperties() {
+        String mapperLocations = applicationContext.getEnvironment().getProperty("r2batis.mapper-locations");
+        String mapUnderscoreToCamelCaseStr = applicationContext.getEnvironment().getProperty("r2batis.configuration.mapUnderscoreToCamelCase");
+        boolean mapUnderscoreToCamelCase = false;
+
+        if (mapperLocations == null || mapperLocations.isBlank())
+            mapperLocations = "classpath:mapper/**/*.xml";
+        if (mapUnderscoreToCamelCaseStr != null && !mapUnderscoreToCamelCaseStr.isBlank())
+            mapUnderscoreToCamelCase = Boolean.parseBoolean(mapUnderscoreToCamelCaseStr);
+
+        // Bean을 등록하지 않고 R2batisAutoConfiguration.r2batisProperties에 저장해둔다.
+        R2batisAutoConfiguration.defaultR2batisProperties = new R2batisProperties(mapperLocations, mapUnderscoreToCamelCase);
+    }
+
+    /**
      * interfaceClass 를 구현하는 proxy instance를 하나 생성하고 beanFactory에 등록해준다.
      *
      * @param beanFactory 스프링 부트가 제공하는 bean factory 객체.
@@ -202,11 +224,12 @@ public class BeanDefinitionRegistryPostProcessorImpl implements BeanDefinitionRe
     private void createR2dbcBean(ConfigurableListableBeanFactory beanFactory, Class<?> interfaceClass) {
         R2dbcMapper r2dbcAnnotation = interfaceClass.getAnnotation(R2dbcMapper.class);
         String connectionFactoryName = r2dbcAnnotation.connectionFactory();
+        String r2batisPropertiesName = r2dbcAnnotation.r2batisProperties();
 
         Object bean = Proxy.newProxyInstance(
                 interfaceClass.getClassLoader(),
                 new Class<?>[] { interfaceClass },
-                new MapperInvocationHandler(interfaceClass.getName(), connectionFactoryName)
+                new MapperInvocationHandler(interfaceClass.getName(), connectionFactoryName, r2batisPropertiesName)
         );
         beanFactory.registerSingleton(interfaceClass.getSimpleName(), bean);
     }

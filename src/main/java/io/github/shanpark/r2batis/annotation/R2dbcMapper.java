@@ -9,4 +9,5 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE_USE)
 public @interface R2dbcMapper {
     String connectionFactory() default "";
+    String r2batisProperties() default "";
 }

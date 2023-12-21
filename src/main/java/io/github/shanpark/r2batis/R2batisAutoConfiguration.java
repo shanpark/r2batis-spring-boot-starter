@@ -1,6 +1,7 @@
 package io.github.shanpark.r2batis;
 
 import io.github.shanpark.r2batis.core.R2batisInitializer;
+import io.github.shanpark.r2batis.core.R2batisProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -12,7 +13,7 @@ import org.springframework.context.annotation.Bean;
 public class R2batisAutoConfiguration {
 
     public static boolean isTesting = false;
-    public static boolean mapUnderscoreToCamelCase = false;
+    public static R2batisProperties defaultR2batisProperties;
 
     @Bean
     public BeanDefinitionRegistryPostProcessor beanDefinitionRegistryPostProcessor(ApplicationContext applicationContext) {
