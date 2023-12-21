@@ -1,6 +1,7 @@
 package io.github.shanpark.r2batis.mapper;
 
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -8,15 +9,16 @@ import org.w3c.dom.NodeList;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Data
 public class Mapper {
 
     private final String interfaceName;
+    private final List<Query> queryList = new ArrayList<>();
 
-    private final List<Select> selectList = new ArrayList<>(); // TODO List<Query> 하나로 합쳐도 될 것 같은데?
-    private final List<Insert> insertList = new ArrayList<>();
-    private final List<Update> updateList = new ArrayList<>();
-    private final List<Delete> deleteList = new ArrayList<>();
+    public Mapper() {
+        interfaceName = ""; // 이렇게 생성된 Mapper는 empty mapper 역할일 뿐 mapper 처리하는 루틴에서 아무 일도 하지 않도록 한다.
+    }
 
     /**
      * Mapper 클래스 생성자.
@@ -35,10 +37,11 @@ public class Mapper {
                 String nodeName = element.getNodeName();
 
                 switch (nodeName) {
-                    case "select" -> selectList.add(new Select(element));
-                    case "insert" -> insertList.add(new Insert(element));
-                    case "update" -> updateList.add(new Update(element));
-                    case "delete" -> deleteList.add(new Delete(element));
+                    case "select" -> queryList.add(new Select(element));
+                    case "insert" -> queryList.add(new Insert(element));
+                    case "update" -> queryList.add(new Update(element));
+                    case "delete" -> queryList.add(new Delete(element));
+                    default -> log.warn("Invalid mapper element(<{}>) was found.", nodeName);
                 }
             }
         }

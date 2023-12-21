@@ -1,5 +1,6 @@
 package io.github.shanpark.r2batis.core;
 
+import io.github.shanpark.r2batis.mapper.Mapper;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
@@ -27,8 +28,7 @@ public class R2batisInitializer {
 
     @PostConstruct
     private void initialize() {
-        interfaceMap.values().forEach(interfaceImpl -> {
-            interfaceImpl.initialize(applicationContext);
-        });
+        Map<String, Mapper> mapperXmlCache = new HashMap<>(); // 로컬에서 캐쉬 버퍼로 사용되고 버린다. 초기화 완료 후 버린다.
+        interfaceMap.values().forEach(interfaceImpl -> interfaceImpl.initialize(applicationContext, mapperXmlCache));
     }
 }

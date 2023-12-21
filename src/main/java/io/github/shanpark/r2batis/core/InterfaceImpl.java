@@ -38,7 +38,8 @@ public class InterfaceImpl {
         methodMap = new HashMap<>();
     }
 
-    public void initialize(ApplicationContext applicationContext) {
+    public void initialize(ApplicationContext applicationContext, Map<String, Mapper> mapperXmlCache) {
+        // mapper interface에서 사용될 connectionFactory를 찾아서 databaseClient 초기화.
         ConnectionFactory connFactory;
         if (connectionFactoryName.isBlank())
             connFactory = applicationContext.getBean(ConnectionFactory.class);
@@ -47,6 +48,7 @@ public class InterfaceImpl {
         connectionFactory = connFactory;
         databaseClient = DatabaseClient.builder().connectionFactory(connFactory).build();
 
+        // mapper interface에서 사용될 r2batisProperties 초기화.
         R2batisProperties r2batisProps;
         if (r2batisPropertiesName.isBlank())
             r2batisProps = R2batisAutoConfiguration.defaultR2batisProperties; // default R2batisProperties 값으로 초기화 한다.
@@ -54,7 +56,8 @@ public class InterfaceImpl {
             r2batisProps = (R2batisProperties) applicationContext.getBean(r2batisPropertiesName);
         r2batisProperties = r2batisProps;
 
-        scanMapperXml(applicationContext);
+        // mapper xml 찾아서 초기화.
+        scanMapperXml(applicationContext, mapperXmlCache);
     }
 
     public void addMethod(MethodImpl methodImpl) {
@@ -80,7 +83,7 @@ public class InterfaceImpl {
      * 지정된 경로에서 mapper xml 파일을 찾아서 분석 후 MethodImpl 객체를 생성하여
      * interfaceMap에 등록된 InterfaceImpl 객체에 추가해준다.
      */
-    private void scanMapperXml(ApplicationContext applicationContext) {
+    private void scanMapperXml(ApplicationContext applicationContext, Map<String, Mapper> mapperXmlCache) {
         String mapperLocations = r2batisProperties.getMapperLocations();
         if (mapperLocations == null)
             mapperLocations = "classpath:mapper/**/*.xml"; // default location
@@ -88,26 +91,32 @@ public class InterfaceImpl {
         String[] mapperPathPatterns = mapperLocations.split("\\s*,\\s*");
         for (String mapperPathPattern : mapperPathPatterns) {
             if (mapperPathPattern.startsWith("classpath:"))
-                scanMapperXmlInResources(applicationContext, mapperPathPattern);
+                scanMapperXmlInResources(applicationContext, mapperPathPattern, mapperXmlCache);
             else
-                scanMapperXmlInDir(applicationContext, mapperPathPattern);
+                scanMapperXmlInDir(applicationContext, mapperPathPattern, mapperXmlCache);
         }
     }
 
-    private void scanMapperXmlInResources(ApplicationContext applicationContext, String mapperPath) {
+    private void scanMapperXmlInResources(ApplicationContext applicationContext, String mapperPath, Map<String, Mapper> mapperXmlCache) {
         try {
             PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
             Resource[] resources = resolver.getResources(mapperPath);
-            for (Resource resource : resources)
-                generateInterfaceFromMapperXml(applicationContext, resource.getInputStream());
-
+            for (Resource resource : resources) {
+                Mapper mapper = mapperXmlCache.get(resource.getURI().toString());
+                if (mapper != null) {
+                    initializeMethodsFromMapperXml(applicationContext, mapper);
+                } else {
+                    mapper = initializeMethodsFromMapperXml(applicationContext, resource.getInputStream());
+                    mapperXmlCache.put(resource.getURI().toString(), mapper); // 2번 parsing하지 않도록 cache에 저장.
+                }
+            }
         } catch (FileNotFoundException ignored) {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void scanMapperXmlInDir(ApplicationContext applicationContext, String mapperPathPattern) {
+    private void scanMapperXmlInDir(ApplicationContext applicationContext, String mapperPathPattern, Map<String, Mapper> mapperXmlCache) {
         DirectoryScanner scanner = new DirectoryScanner();
         scanner.setIncludes(new String[]{ mapperPathPattern });
         if (!mapperPathPattern.startsWith(File.separator))
@@ -116,45 +125,40 @@ public class InterfaceImpl {
 
         try {
             String[] files = scanner.getIncludedFiles();
-            for (String file : files)
-                generateInterfaceFromMapperXml(applicationContext, new FileInputStream(file));
+            for (String file : files) {
+                Mapper mapper = mapperXmlCache.get(file);
+                if (mapper != null) {
+                    initializeMethodsFromMapperXml(applicationContext, mapper);
+                } else {
+                    mapper = initializeMethodsFromMapperXml(applicationContext, new FileInputStream(file));
+                    mapperXmlCache.put(file, mapper); // 2번 parsing하지 않도록 cache에 저장.
+                }
+            }
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void generateInterfaceFromMapperXml(ApplicationContext applicationContext, InputStream inputStream) {
+    private Mapper initializeMethodsFromMapperXml(ApplicationContext applicationContext, InputStream inputStream) {
         Mapper mapper = XmlMapperParser.parse(inputStream);
-        if (mapper != null) {
-            if (!mapper.getInterfaceName().equals(name))
-                return; // TODO 매번 parse를 하지 않고 한 번만 parse하면 다시 캐슁해서 사용할 수 있을 것 같은디...
+        if (mapper == null)
+            return new Mapper(); // empty mapper를 반환한다. 같은 리소스를 다시 parse하지 않도록 하기 위함이다.
 
-            DatabaseIdProvider databaseIdProvider = applicationContext.getBean(DatabaseIdProvider.class);
-            String databaseId = databaseIdProvider.getDatabaseId(connectionFactory);
+        initializeMethodsFromMapperXml(applicationContext, mapper);
+        return mapper;
+    }
 
-            if (!CollectionUtils.isEmpty(mapper.getSelectList())) { // null 체크도 해줌.
-                for (Query query : mapper.getSelectList()) {
-                    if (databaseId == null || query.getDatabaseId().isBlank() || Objects.equals(databaseId, query.getDatabaseId()))
-                        addMethod(new MethodImpl(this, query.getId(), query));
-                }
-            }
-            if (!CollectionUtils.isEmpty(mapper.getInsertList())) {
-                for (Query query : mapper.getInsertList()) {
-                    if (databaseId == null || query.getDatabaseId().isBlank() || Objects.equals(databaseId, query.getDatabaseId()))
-                        addMethod(new MethodImpl(this, query.getId(), query));
-                }
-            }
-            if (!CollectionUtils.isEmpty(mapper.getUpdateList())) {
-                for (Query query : mapper.getUpdateList()) {
-                    if (databaseId == null || query.getDatabaseId().isBlank() || Objects.equals(databaseId, query.getDatabaseId()))
-                        addMethod(new MethodImpl(this, query.getId(), query));
-                }
-            }
-            if (!CollectionUtils.isEmpty(mapper.getDeleteList())) {
-                for (Query query : mapper.getDeleteList()) {
-                    if (databaseId == null || query.getDatabaseId().isBlank() || Objects.equals(databaseId, query.getDatabaseId()))
-                        addMethod(new MethodImpl(this, query.getId(), query));
-                }
+    private void initializeMethodsFromMapperXml(ApplicationContext applicationContext, Mapper mapper) {
+        if (!mapper.getInterfaceName().equals(name))
+            return;
+
+        DatabaseIdProvider databaseIdProvider = applicationContext.getBean(DatabaseIdProvider.class);
+        String databaseId = databaseIdProvider.getDatabaseId(connectionFactory);
+
+        if (!CollectionUtils.isEmpty(mapper.getQueryList())) { // null 체크도 해줌.
+            for (Query query : mapper.getQueryList()) {
+                if (databaseId == null || query.getDatabaseId().isBlank() || Objects.equals(databaseId, query.getDatabaseId()))
+                    addMethod(new MethodImpl(this, query.getId(), query));
             }
         }
     }
