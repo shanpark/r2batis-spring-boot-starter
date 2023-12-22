@@ -24,7 +24,7 @@ repositories {
 dependencies {
     ...
     implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
-    implementation 'com.github.shanpark:r2batis-spring-boot-starter:0.1.2'
+    implementation 'com.github.shanpark:r2batis-spring-boot-starter:0.1.5'
     // include vendor dependent R2DBC driver.
 }
 ```
@@ -36,6 +36,8 @@ dependencies {
 ```yaml
 r2batis:
   mapper-locations: classpath:mapper/**/*.xml #, xxx, yyy, ...
+  configuration:
+    mapUnderscoreToCamelCase: false
 ```
 
 ## 3. Example
