@@ -4,8 +4,11 @@ plugins {
 }
 
 group 'io.github.shanpark'
-version '0.1.5'
-sourceCompatibility = '17'
+version '0.1.6'
+
+java {
+    sourceCompatibility = '17'
+}
 
 repositories {
     mavenCentral()
@@ -13,6 +16,7 @@ repositories {
 
 tasks.register('sourceJar', Jar) {
     from sourceSets.main.allJava
+    archiveClassifier = "sources"
 }
 
 publishing {
@@ -20,27 +24,22 @@ publishing {
         maven(MavenPublication) {
             groupId = 'io.github.shanpark'
             artifactId = 'r2batis-spring-boot-starter'
-            version = '0.1.5'
+            version = '0.1.6'
             from components.java
 
-            artifact sourceJar {
-                classifier "sources"
-            }
+            artifact sourceJar
         }
     }
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc:3.2.0'
-    implementation 'org.springframework.boot:spring-boot-autoconfigure-processor:3.2.0'
+    implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc:3.2.1'
+    implementation 'org.springframework.boot:spring-boot-autoconfigure-processor:3.2.1'
     api 'ognl:ognl:3.4.2'
     api 'org.apache.ant:ant:1.10.14'
 
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
-
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
 }
 
 test {

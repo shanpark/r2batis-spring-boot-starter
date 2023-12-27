@@ -1,13 +1,16 @@
 package io.github.shanpark.r2batis.core;
 
-import io.github.shanpark.r2batis.R2batisAutoConfiguration;
+import io.github.shanpark.r2batis.configure.R2batisAutoConfiguration;
 import io.github.shanpark.r2batis.exception.InvalidMapperElementException;
 import io.github.shanpark.r2batis.mapper.Mapper;
 import io.github.shanpark.r2batis.mapper.Query;
 import io.github.shanpark.r2batis.mapper.XmlMapperParser;
 import io.r2dbc.spi.ConnectionFactory;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.tools.ant.DirectoryScanner;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import org.springframework.beans.factory.NoUniqueBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
@@ -20,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+@Slf4j
 public class InterfaceImpl {
     private final String name;
     private final String connectionFactoryName;
@@ -41,19 +45,32 @@ public class InterfaceImpl {
     public void initialize(ApplicationContext applicationContext, Map<String, Mapper> mapperXmlCache) {
         // mapper interface에서 사용될 connectionFactory를 찾아서 databaseClient 초기화.
         ConnectionFactory connFactory;
-        if (connectionFactoryName.isBlank())
-            connFactory = applicationContext.getBean(ConnectionFactory.class);
-        else
-            connFactory = (ConnectionFactory) applicationContext.getBean(connectionFactoryName);
-        connectionFactory = connFactory;
-        databaseClient = DatabaseClient.builder().connectionFactory(connFactory).build();
+        try {
+            if (connectionFactoryName.isBlank())
+                connFactory = applicationContext.getBean(ConnectionFactory.class);
+            else
+                connFactory = (ConnectionFactory) applicationContext.getBean(connectionFactoryName);
+            connectionFactory = connFactory;
+            databaseClient = DatabaseClient.builder().connectionFactory(connFactory).build();
+        } catch (NoUniqueBeanDefinitionException  e) {
+            log.warn("Multiple connection factory for '{}' were found", name);
+            return;
+        } catch (NoSuchBeanDefinitionException e) {
+            log.warn("No connection factory for '{}' was found", name);
+            return;
+        }
 
         // mapper interface에서 사용될 r2batisProperties 초기화.
         R2batisProperties r2batisProps;
-        if (r2batisPropertiesName.isBlank())
+        try {
+            if (r2batisPropertiesName.isBlank())
+                r2batisProps = R2batisAutoConfiguration.defaultR2batisProperties; // default R2batisProperties 값으로 초기화 한다.
+            else
+                r2batisProps = (R2batisProperties) applicationContext.getBean(r2batisPropertiesName);
+        } catch (NoSuchBeanDefinitionException e) {
+            log.warn("'{}' bean for '{}' was not found. The default properties will be used.", r2batisPropertiesName, name);
             r2batisProps = R2batisAutoConfiguration.defaultR2batisProperties; // default R2batisProperties 값으로 초기화 한다.
-        else
-            r2batisProps = (R2batisProperties) applicationContext.getBean(r2batisPropertiesName);
+        }
         r2batisProperties = r2batisProps;
 
         // mapper xml 찾아서 초기화.
@@ -152,8 +169,13 @@ public class InterfaceImpl {
         if (!mapper.getInterfaceName().equals(name))
             return;
 
-        DatabaseIdProvider databaseIdProvider = applicationContext.getBean(DatabaseIdProvider.class);
-        String databaseId = databaseIdProvider.getDatabaseId(connectionFactory);
+        String databaseId;
+        try {
+            DatabaseIdProvider databaseIdProvider = applicationContext.getBean(DatabaseIdProvider.class);
+            databaseId = databaseIdProvider.getDatabaseId(connectionFactory);
+        } catch (NoSuchBeanDefinitionException e) {
+            databaseId = null;
+        }
 
         if (!CollectionUtils.isEmpty(mapper.getQueryList())) { // null 체크도 해줌.
             for (Query query : mapper.getQueryList()) {

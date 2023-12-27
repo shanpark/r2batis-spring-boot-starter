@@ -104,6 +104,8 @@ public interface CustomerMapper {
 - The `keyColumn` attribute of the `<selectKey>` element can only contain a single column name.
 - `<insert>`, `<update>`, `<delete>` elements return the number of affected rows.  
   And the result type is `Long`. (MySQL, MaraiDB implementation tested.)
+- @R2dbdMapper 어노테이션 지정된 bean을 등록하는 시점이 ConnectionFactory 보다는 늦지만 다른 bean들 보다는 
+  빨라야 한다. 이 시점을 맞출 수가 없어서 편법으로 @SpringBootApplication 이 지정된 bean이 생성된 직후 시점을 @R2dbcMapper bean을 생성하는 시점으로 잡았다. 
 
 ## 5. R2dbc Driver test notes
 
@@ -115,10 +117,11 @@ public interface CustomerMapper {
 ### MySQL
 
 - java.util.Date 타입의 파라메터를 전달하면 클라이언트의 타임존 정보가 무시되고 DB 서버의 시간대로 인식된다.
-- DB로부터 전달된 DATETIME 값을 java.util.Date로 받으면 DB서버의 타임존 시간이라고 보고 로컬 시간대로 변환되어 받는다. 
+- DB로부터 전달된 DATETIME 값을 java.util.Date로 받으면 DB서버의 타임존 시간이라고 보고 로컬 시간대로 변환되어 받는다.
 - ZonedDateTime 타입을 사용하면 타임존 정보가 정상적으로 유지된다.
 
 ### Oracle
 
 - Oracle용 r2dbc 드라이버의 공식 문서상으로는 Oracle 18 이후 버전에서 공식 지원한다고 한다.
+- Tomcat에 WAR로 배포하는 경우 Oracle JDBC 드라이버를 못찾는 에러가 발생한다. Jar 로 실행하는 경우에는 잘된다. (원인 불명)
 - java.util.Date 타입의 값을 파라메터로 전달하거나 DB의 시간값을 읽어와서 java.util.Date 타입으로 받거나 모두 타임존 정보를 무시하고 각자의 로컬 타임으로 해석해서 사용한다.
