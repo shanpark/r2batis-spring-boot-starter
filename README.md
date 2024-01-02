@@ -24,7 +24,7 @@ repositories {
 dependencies {
     ...
     implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
-    implementation 'com.github.shanpark:r2batis-spring-boot-starter:0.1.5'
+    implementation 'com.github.shanpark:r2batis-spring-boot-starter:0.1.7'
     // include vendor dependent R2DBC driver.
 }
 ```
@@ -59,7 +59,7 @@ package com.example.mapper;
 
 ...
 
-@R2dbcMapper
+@R2batisMapper
 public interface CustomerMapper {
     Mono<CustomerVo> getCustomer(Long customerId);
     Flux<CustomerVo> getCustomerList();
@@ -104,8 +104,6 @@ public interface CustomerMapper {
 - The `keyColumn` attribute of the `<selectKey>` element can only contain a single column name.
 - `<insert>`, `<update>`, `<delete>` elements return the number of affected rows.  
   And the result type is `Long`. (MySQL, MaraiDB implementation tested.)
-- @R2dbdMapper 어노테이션 지정된 bean을 등록하는 시점이 ConnectionFactory 보다는 늦지만 다른 bean들 보다는 
-  빨라야 한다. 이 시점을 맞출 수가 없어서 편법으로 @SpringBootApplication 이 지정된 bean이 생성된 직후 시점을 @R2dbcMapper bean을 생성하는 시점으로 잡았다. 
 
 ## 5. R2dbc Driver test notes
 

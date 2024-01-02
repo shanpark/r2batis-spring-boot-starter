@@ -7,7 +7,7 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE_USE)
-public @interface R2dbcMapper {
+public @interface R2batisMapper {
     String connectionFactory() default "";
     String r2batisProperties() default "";
 }

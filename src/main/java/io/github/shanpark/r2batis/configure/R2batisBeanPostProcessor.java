@@ -1,6 +1,6 @@
 package io.github.shanpark.r2batis.configure;
 
-import io.github.shanpark.r2batis.annotation.R2dbcMapper;
+import io.github.shanpark.r2batis.annotation.R2batisMapper;
 import io.github.shanpark.r2batis.core.InterfaceImpl;
 import io.github.shanpark.r2batis.core.R2batisProperties;
 import io.github.shanpark.r2batis.mapper.Mapper;
@@ -40,13 +40,15 @@ public class R2batisBeanPostProcessor implements BeanPostProcessor {
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
         if (bean.getClass().isAnnotationPresent(SpringBootApplication.class)) {
             if (applicationContext instanceof ConfigurableApplicationContext) {
-                createDefaultR2batisProperties();
+                if (R2batisAutoConfiguration.defaultR2batisProperties == null) { // 이 값이 null이 아니면 이미 초기화가 어디선가 이루어진 것이다.
+                    createDefaultR2batisProperties();
 
-                // 여기서는 @R2batisMapper 가 지정된 interface만 찾아서 bean으로 일단 등록해준다.
-                Map<String, Mapper> mapperXmlCache = new HashMap<>(); // 로컬에서 캐쉬 버퍼로 사용되고 버린다. 초기화 완료 후 버린다.
-                List<Class<?>> mapperInterfaceClasses = scanMapperInterface();
-                for (Class<?> interfaceClass : mapperInterfaceClasses)
-                    createR2dbcBean(((ConfigurableApplicationContext) applicationContext).getBeanFactory(), interfaceClass, mapperXmlCache);
+                    // 여기서는 @R2batisMapper 가 지정된 interface만 찾아서 bean으로 일단 등록해준다.
+                    Map<String, Mapper> mapperXmlCache = new HashMap<>(); // 로컬에서 캐쉬 버퍼로 사용되고 버린다. 초기화 완료 후 버린다.
+                    List<Class<?>> mapperInterfaceClasses = scanMapperInterface();
+                    for (Class<?> interfaceClass : mapperInterfaceClasses)
+                        createR2dbcBean(((ConfigurableApplicationContext) applicationContext).getBeanFactory(), interfaceClass, mapperXmlCache);
+                }
             }
         }
         return bean;
@@ -128,7 +130,7 @@ public class R2batisBeanPostProcessor implements BeanPostProcessor {
                         String className = fileName.substring(0, fileName.length() - 6);
                         Class<?> clazz = Class.forName(packageName + "." + className);
                         if (clazz.isInterface()) {
-                            if (clazz.isAnnotationPresent(R2dbcMapper.class))
+                            if (clazz.isAnnotationPresent(R2batisMapper.class))
                                 mapperInterfaceList.add(clazz);
                         }
                     } catch (NoClassDefFoundError | ClassNotFoundException e) {
@@ -166,7 +168,7 @@ public class R2batisBeanPostProcessor implements BeanPostProcessor {
                     try {
                         Class<?> clazz = Class.forName(className);
                         if (clazz.isInterface()) {
-                            if (clazz.isAnnotationPresent(R2dbcMapper.class))
+                            if (clazz.isAnnotationPresent(R2batisMapper.class))
                                 mapperInterfaceList.add(clazz);
                         }
                     } catch (NoClassDefFoundError | ClassNotFoundException e) {
@@ -225,11 +227,11 @@ public class R2batisBeanPostProcessor implements BeanPostProcessor {
      * @param mapperXmlCache xml을 2번 parsing할 필요가 없기 때문에 이미 parsing된 Mapper 객체를 보관하여 재사용하기 위한 버퍼이다.
      */
     private void createR2dbcBean(ConfigurableListableBeanFactory beanFactory, Class<?> interfaceClass, Map<String, Mapper> mapperXmlCache) {
-        R2dbcMapper r2dbcAnnotation = interfaceClass.getAnnotation(R2dbcMapper.class);
+        R2batisMapper r2dbcAnnotation = interfaceClass.getAnnotation(R2batisMapper.class);
         String connectionFactoryName = r2dbcAnnotation.connectionFactory();
         String r2batisPropertiesName = r2dbcAnnotation.r2batisProperties();
 
-        InterfaceImpl interfaceImpl = new InterfaceImpl(interfaceClass.getName(), connectionFactoryName, r2batisPropertiesName);
+        InterfaceImpl interfaceImpl = new InterfaceImpl(interfaceClass, connectionFactoryName, r2batisPropertiesName);
         interfaceImpl.initialize(applicationContext, mapperXmlCache);
 
         Object bean = Proxy.newProxyInstance(

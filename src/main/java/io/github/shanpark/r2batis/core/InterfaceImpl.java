@@ -19,13 +19,11 @@ import org.springframework.util.CollectionUtils;
 
 import java.io.*;
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Slf4j
 public class InterfaceImpl {
-    private final String name;
+    private final Class<?> clazz;
     private final String connectionFactoryName;
     private final String r2batisPropertiesName;
     private final Map<String, MethodImpl> methodMap;
@@ -35,8 +33,8 @@ public class InterfaceImpl {
     @Getter
     private R2batisProperties r2batisProperties;
 
-    public InterfaceImpl(String name, String connectionFactoryName, String r2batisPropertiesName) {
-        this.name = name;
+    public InterfaceImpl(Class<?> clazz, String connectionFactoryName, String r2batisPropertiesName) {
+        this.clazz = clazz;
         this.connectionFactoryName = connectionFactoryName;
         this.r2batisPropertiesName = r2batisPropertiesName;
         methodMap = new HashMap<>();
@@ -53,10 +51,10 @@ public class InterfaceImpl {
             connectionFactory = connFactory;
             databaseClient = DatabaseClient.builder().connectionFactory(connFactory).build();
         } catch (NoUniqueBeanDefinitionException  e) {
-            log.warn("Multiple connection factory for '{}' were found", name);
+            log.warn("Multiple connection factory for '{}' were found", clazz.getName());
             return;
         } catch (NoSuchBeanDefinitionException e) {
-            log.warn("No connection factory for '{}' was found", name);
+            log.warn("No connection factory for '{}' was found", clazz.getName());
             return;
         }
 
@@ -68,7 +66,7 @@ public class InterfaceImpl {
             else
                 r2batisProps = (R2batisProperties) applicationContext.getBean(r2batisPropertiesName);
         } catch (NoSuchBeanDefinitionException e) {
-            log.warn("'{}' bean for '{}' was not found. The default properties will be used.", r2batisPropertiesName, name);
+            log.warn("'{}' bean for '{}' was not found. The default properties will be used.", r2batisPropertiesName, clazz.getName());
             r2batisProps = R2batisAutoConfiguration.defaultR2batisProperties; // default R2batisProperties 값으로 초기화 한다.
         }
         r2batisProperties = r2batisProps;
@@ -79,7 +77,7 @@ public class InterfaceImpl {
 
     public void addMethod(MethodImpl methodImpl) {
         if (methodMap.put(methodImpl.getName(), methodImpl) != null)
-            throw new InvalidMapperElementException("Two or more query definitions were found. [" + name + "." + methodImpl.getName() + "]");
+            throw new InvalidMapperElementException("Two or more query definitions were found. [" + clazz.getName() + "." + methodImpl.getName() + "]");
     }
 
     /**
@@ -93,7 +91,7 @@ public class InterfaceImpl {
         if (methodImpl != null)
             return methodImpl.invoke(databaseClient, method, args);
         else
-            throw new InvalidMapperElementException("There is no valid method with name [" + method.getName() + "]. Verify the method name, 'id' or 'databaseId' in the mapper XML");
+            throw new InvalidMapperElementException("There is no valid method definition with name [" + method.getName() + "]. Verify the method name, 'id' or 'databaseId' in the mapper XML");
     }
 
     /**
@@ -166,7 +164,7 @@ public class InterfaceImpl {
     }
 
     private void initializeMethodsFromMapperXml(ApplicationContext applicationContext, Mapper mapper) {
-        if (!mapper.getInterfaceName().equals(name))
+        if (!mapper.getInterfaceName().equals(clazz.getName()))
             return;
 
         String databaseId;
@@ -177,10 +175,15 @@ public class InterfaceImpl {
             databaseId = null;
         }
 
-        if (!CollectionUtils.isEmpty(mapper.getQueryList())) { // null 체크도 해줌.
+        Set<Method> methods = new HashSet<>(Arrays.asList(clazz.getMethods()));
+        if (!methods.isEmpty() && !CollectionUtils.isEmpty(mapper.getQueryList())) { // null 체크도 해줌.
             for (Query query : mapper.getQueryList()) {
-                if (databaseId == null || query.getDatabaseId().isBlank() || Objects.equals(databaseId, query.getDatabaseId()))
-                    addMethod(new MethodImpl(this, query.getId(), query));
+                if (databaseId == null || query.getDatabaseId().isBlank() || Objects.equals(databaseId, query.getDatabaseId())) {
+                    if (methods.stream().anyMatch(method -> method.getName().equals(query.getId())))
+                        addMethod(new MethodImpl(this, query.getId(), query));
+                    else
+                        log.warn("The method mapping for '{}.{}' could not be found.", mapper.getInterfaceName(), query.getId());
+                }
             }
         }
     }
